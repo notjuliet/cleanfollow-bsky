@@ -23,6 +23,10 @@ input {
 }
 
 button {
-  margin: 5px;
+  margin: 10px;
   font-size: 125%;
+}
+
+.Warning {
+  margin-bottom: 10px;
 }
