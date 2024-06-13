@@ -3,6 +3,8 @@ import { createSignal, type Component } from "solid-js";
 import styles from "./App.module.css";
 import { BskyAgent } from "@atproto/api";
 
+const [unfollow, setUnfollow] = createSignal("");
+
 const fetchFollows = async (agent: any) => {
   const PAGE_LIMIT = 100;
   const fetchPage = async (cursor?: any) => {
@@ -55,6 +57,14 @@ const unfollowBsky = async (userHandle: any, userPassword: any) => {
           "Unfollowed blocked account: " + followRecords[i + n].value.subject,
           " (" + res.data.profiles[i].handle + ")",
         );
+        setUnfollow(
+          unfollow() +
+            "Unfollowed blocked account: " +
+            followRecords[i + n].value.subject +
+            " (" +
+            res.data.profiles[i].handle +
+            ")<br>",
+        );
       }
     }
     for (let i = 0; i < res.data.profiles.length; i++) {
@@ -62,6 +72,12 @@ const unfollowBsky = async (userHandle: any, userPassword: any) => {
         await agent.deleteFollow(followRecords[i + n].uri);
         console.log(
           "Unfollowed deleted account: " + followRecords[i + n].value.subject,
+        );
+        setUnfollow(
+          unfollow() +
+            "Unfollowed deleted account: " +
+            followRecords[i + n].value.subject +
+            "<br>",
         );
       }
     }
@@ -96,6 +112,7 @@ const UnfollowForm: Component = () => {
           Unfollow
         </button>
       </form>
+      <div innerHTML={unfollow()}></div>
     </div>
   );
 };
@@ -103,7 +120,7 @@ const UnfollowForm: Component = () => {
 const App: Component = () => {
   return (
     <div class={styles.App}>
-      <h1>nofollow-bsky</h1>
+      <h1>cleanfollow-bsky</h1>
       <div class="warning">
         <p>
           warning: unfollows all deleted accounts and accounts you follow that
