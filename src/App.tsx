@@ -37,6 +37,8 @@ const unfollowBsky = async (userHandle: any, userPassword: any) => {
     password: userPassword,
   });
 
+  setUnfollow("");
+
   const followRecords = await fetchFollows(agent);
 
   let followsDID: string[] = [];
@@ -82,6 +84,8 @@ const unfollowBsky = async (userHandle: any, userPassword: any) => {
       }
     }
   }
+
+  setUnfollow(unfollow() + "Done");
 };
 
 const UnfollowForm: Component = () => {
