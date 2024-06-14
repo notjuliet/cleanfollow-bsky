@@ -27,17 +27,21 @@ const fetchFollows = async (agent: any) => {
   return follows;
 };
 
-const unfollowBsky = async (userHandle: any, userPassword: any) => {
+const unfollowBsky = async (
+  userHandle: any,
+  userPassword: any,
+  serviceURL: any,
+) => {
+  setUnfollow("");
+
   const agent = new BskyAgent({
-    service: "https://bsky.social",
+    service: serviceURL,
   });
 
   await agent.login({
     identifier: userHandle,
     password: userPassword,
   });
-
-  setUnfollow("");
 
   const followRecords = await fetchFollows(agent);
 
@@ -91,10 +95,18 @@ const unfollowBsky = async (userHandle: any, userPassword: any) => {
 const UnfollowForm: Component = () => {
   const [userHandle, setUserHandle] = createSignal();
   const [appPassword, setAppPassword] = createSignal();
+  const [serviceURL, setserviceURL] = createSignal("https://bsky.social");
 
   return (
     <div>
       <form>
+        <div>
+          <input
+            type="text"
+            placeholder="https://bsky.social (optional)"
+            onInput={(e) => setserviceURL(e.currentTarget.value)}
+          />
+        </div>
         <div>
           <input
             type="text"
@@ -111,7 +123,9 @@ const UnfollowForm: Component = () => {
         </div>
         <button
           type="button"
-          onclick={() => unfollowBsky(userHandle(), appPassword())}
+          onclick={() =>
+            unfollowBsky(userHandle(), appPassword(), serviceURL())
+          }
         >
           Unfollow
         </button>
