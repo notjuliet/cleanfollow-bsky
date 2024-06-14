@@ -47,6 +47,7 @@ const unfollowBsky = async (
   });
 
   if (unfollowURIs.length == 0 || preview) {
+    if (preview) unfollowURIs = [];
     followRecords = await fetchFollows(agent);
 
     let followsDID: string[] = [];
