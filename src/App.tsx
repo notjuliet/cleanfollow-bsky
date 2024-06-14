@@ -3,7 +3,7 @@ import { createSignal, type Component } from "solid-js";
 import styles from "./App.module.css";
 import { BskyAgent } from "@atproto/api";
 
-const [unfollow, setUnfollow] = createSignal("");
+const [unfollowNotice, setUnfollowNotice] = createSignal("");
 
 const fetchFollows = async (agent: any) => {
   const PAGE_LIMIT = 100;
@@ -32,7 +32,7 @@ const unfollowBsky = async (
   userPassword: any,
   serviceURL: any,
 ) => {
-  setUnfollow("");
+  setUnfollowNotice("");
 
   const agent = new BskyAgent({
     service: serviceURL,
@@ -63,8 +63,8 @@ const unfollowBsky = async (
           "Unfollowed blocked account: " + followRecords[i + n].value.subject,
           " (" + res.data.profiles[i].handle + ")",
         );
-        setUnfollow(
-          unfollow() +
+        setUnfollowNotice(
+          unfollowNotice() +
             "Unfollowed blocked account: " +
             followRecords[i + n].value.subject +
             " (" +
@@ -79,8 +79,8 @@ const unfollowBsky = async (
         console.log(
           "Unfollowed deleted account: " + followRecords[i + n].value.subject,
         );
-        setUnfollow(
-          unfollow() +
+        setUnfollowNotice(
+          unfollowNotice() +
             "Unfollowed deleted account: " +
             followRecords[i + n].value.subject +
             "<br>",
@@ -89,7 +89,7 @@ const unfollowBsky = async (
     }
   }
 
-  setUnfollow(unfollow() + "Done");
+  setUnfollowNotice(unfollowNotice() + "Done");
 };
 
 const UnfollowForm: Component = () => {
@@ -130,7 +130,7 @@ const UnfollowForm: Component = () => {
           Unfollow
         </button>
       </form>
-      <div innerHTML={unfollow()}></div>
+      <div innerHTML={unfollowNotice()}></div>
     </div>
   );
 };
@@ -141,8 +141,8 @@ const App: Component = () => {
       <h1>cleanfollow-bsky</h1>
       <div class={styles.Warning}>
         <p>
-          warning: unfollows all deleted accounts and accounts you follow that
-          have blocked you
+          unfollows all deleted accounts and accounts you follow that have
+          blocked you
         </p>
         <p>USE AT YOUR OWN RISK</p>
         <a href="https://github.com/notjuliet/cleanfollow-bsky">Source Code</a>
