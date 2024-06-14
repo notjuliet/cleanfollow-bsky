@@ -4,7 +4,7 @@ import styles from "./App.module.css";
 import { BskyAgent } from "@atproto/api";
 
 const [unfollowNotice, setUnfollowNotice] = createSignal("");
-let unfollowURIs: number[] = [];
+let unfollowURIsIndexes: number[] = [];
 let followRecords: any[];
 
 const fetchFollows = async (agent: any) => {
@@ -46,8 +46,8 @@ const unfollowBsky = async (
     password: userPassword,
   });
 
-  if (unfollowURIs.length == 0 || preview) {
-    if (preview) unfollowURIs = [];
+  if (unfollowURIsIndexes.length == 0 || preview) {
+    if (preview) unfollowURIsIndexes = [];
     followRecords = await fetchFollows(agent);
 
     let followsDID: string[] = [];
@@ -63,8 +63,7 @@ const unfollowBsky = async (
       for (let i = 0; i < res.data.profiles.length; i++) {
         tmpDID[i] = res.data.profiles[i].did;
         if (res.data.profiles[i].viewer?.blockedBy) {
-          unfollowURIs.push(i + n);
-          //await agent.deleteFollow(followRecords[i + n].uri);
+          unfollowURIsIndexes.push(i + n);
           setUnfollowNotice(
             unfollowNotice() +
               "Found blocked account: " +
@@ -77,8 +76,7 @@ const unfollowBsky = async (
       }
       for (let i = 0; i < res.data.profiles.length; i++) {
         if (!tmpDID.includes(followsDID[i + n])) {
-          unfollowURIs.push(i + n);
-          //await agent.deleteFollow(followRecords[i + n].uri);
+          unfollowURIsIndexes.push(i + n);
           setUnfollowNotice(
             unfollowNotice() +
               "Found deleted account: " +
@@ -91,7 +89,7 @@ const unfollowBsky = async (
   }
 
   if (!preview) {
-    for (const i of unfollowURIs) {
+    for (const i of unfollowURIsIndexes) {
       await agent.deleteFollow(followRecords[i].uri);
       setUnfollowNotice(
         unfollowNotice() +
@@ -100,7 +98,7 @@ const unfollowBsky = async (
           "<br>",
       );
     }
-    unfollowURIs = [];
+    unfollowURIsIndexes = [];
     followRecords = [];
   }
 
