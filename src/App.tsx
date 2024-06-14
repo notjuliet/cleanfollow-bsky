@@ -141,8 +141,8 @@ const App: Component = () => {
       <h1>cleanfollow-bsky</h1>
       <div class={styles.Warning}>
         <p>
-          unfollows all deleted accounts and accounts you follow that have
-          blocked you
+          unfollows all deleted/deactivated accounts and accounts you follow
+          that have blocked you
         </p>
         <p>USE AT YOUR OWN RISK</p>
         <a href="https://github.com/notjuliet/cleanfollow-bsky">Source Code</a>
