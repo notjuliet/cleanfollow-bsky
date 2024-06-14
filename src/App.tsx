@@ -46,7 +46,7 @@ const unfollowBsky = async (
     password: userPassword,
   });
 
-  if (!unfollowURIs.length) {
+  if (unfollowURIs.length == 0 || preview) {
     followRecords = await fetchFollows(agent);
 
     let followsDID: string[] = [];
