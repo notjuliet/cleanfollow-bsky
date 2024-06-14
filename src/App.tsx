@@ -4,6 +4,8 @@ import styles from "./App.module.css";
 import { BskyAgent } from "@atproto/api";
 
 const [unfollowNotice, setUnfollowNotice] = createSignal("");
+let unfollowURIs: number[] = [];
+let followRecords: any[];
 
 const fetchFollows = async (agent: any) => {
   const PAGE_LIMIT = 100;
@@ -31,6 +33,7 @@ const unfollowBsky = async (
   userHandle: any,
   userPassword: any,
   serviceURL: any,
+  preview: boolean,
 ) => {
   setUnfollowNotice("");
 
@@ -43,50 +46,61 @@ const unfollowBsky = async (
     password: userPassword,
   });
 
-  const followRecords = await fetchFollows(agent);
+  if (!unfollowURIs.length) {
+    followRecords = await fetchFollows(agent);
 
-  let followsDID: string[] = [];
-  for (let n = 0; n < followRecords.length; n++)
-    followsDID[n] = followRecords[n].value.subject;
+    let followsDID: string[] = [];
+    for (let n = 0; n < followRecords.length; n++)
+      followsDID[n] = followRecords[n].value.subject;
 
-  for (let n = 0; n < followsDID.length; n = n + 25) {
-    const res = await agent.getProfiles({
-      actors: followsDID.slice(n, n + 25),
-    });
+    for (let n = 0; n < followsDID.length; n = n + 25) {
+      const res = await agent.getProfiles({
+        actors: followsDID.slice(n, n + 25),
+      });
 
-    let tmpDID: string[] = [];
-    for (let i = 0; i < res.data.profiles.length; i++) {
-      tmpDID[i] = res.data.profiles[i].did;
-      if (res.data.profiles[i].viewer?.blockedBy) {
-        await agent.deleteFollow(followRecords[i + n].uri);
-        console.log(
-          "Unfollowed blocked account: " + followRecords[i + n].value.subject,
-          " (" + res.data.profiles[i].handle + ")",
-        );
-        setUnfollowNotice(
-          unfollowNotice() +
-            "Unfollowed blocked account: " +
-            followRecords[i + n].value.subject +
-            " (" +
-            res.data.profiles[i].handle +
-            ")<br>",
-        );
+      let tmpDID: string[] = [];
+      for (let i = 0; i < res.data.profiles.length; i++) {
+        tmpDID[i] = res.data.profiles[i].did;
+        if (res.data.profiles[i].viewer?.blockedBy) {
+          unfollowURIs.push(i + n);
+          //await agent.deleteFollow(followRecords[i + n].uri);
+          setUnfollowNotice(
+            unfollowNotice() +
+              "Found blocked account: " +
+              followRecords[i + n].value.subject +
+              " (" +
+              res.data.profiles[i].handle +
+              ")<br>",
+          );
+        }
+      }
+      for (let i = 0; i < res.data.profiles.length; i++) {
+        if (!tmpDID.includes(followsDID[i + n])) {
+          unfollowURIs.push(i + n);
+          //await agent.deleteFollow(followRecords[i + n].uri);
+          setUnfollowNotice(
+            unfollowNotice() +
+              "Found deleted account: " +
+              followRecords[i + n].value.subject +
+              "<br>",
+          );
+        }
       }
     }
-    for (let i = 0; i < res.data.profiles.length; i++) {
-      if (!tmpDID.includes(followsDID[i + n])) {
-        await agent.deleteFollow(followRecords[i + n].uri);
-        console.log(
-          "Unfollowed deleted account: " + followRecords[i + n].value.subject,
-        );
-        setUnfollowNotice(
-          unfollowNotice() +
-            "Unfollowed deleted account: " +
-            followRecords[i + n].value.subject +
-            "<br>",
-        );
-      }
+  }
+
+  if (!preview) {
+    for (const i of unfollowURIs) {
+      await agent.deleteFollow(followRecords[i].uri);
+      setUnfollowNotice(
+        unfollowNotice() +
+          "Unfollowed account: " +
+          followRecords[i].value.subject +
+          "<br>",
+      );
     }
+    unfollowURIs = [];
+    followRecords = [];
   }
 
   setUnfollowNotice(unfollowNotice() + "Done");
@@ -124,7 +138,15 @@ const UnfollowForm: Component = () => {
         <button
           type="button"
           onclick={() =>
-            unfollowBsky(userHandle(), appPassword(), serviceURL())
+            unfollowBsky(userHandle(), appPassword(), serviceURL(), true)
+          }
+        >
+          Preview
+        </button>
+        <button
+          type="button"
+          onclick={() =>
+            unfollowBsky(userHandle(), appPassword(), serviceURL(), false)
           }
         >
           Unfollow
