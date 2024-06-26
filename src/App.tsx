@@ -54,9 +54,11 @@ const unfollowBsky = async (
     for (let n = 0; n < followRecords.length; n++)
       followsDID[n] = followRecords[n].value.subject;
 
-    for (let n = 0; n < followsDID.length; n = n + 25) {
+    const PROFILES_LIMIT = 25;
+
+    for (let n = 0; n < followsDID.length; n = n + PROFILES_LIMIT) {
       const res = await agent.getProfiles({
-        actors: followsDID.slice(n, n + 25),
+        actors: followsDID.slice(n, n + PROFILES_LIMIT),
       });
 
       let tmpDID: string[] = [];
