@@ -162,8 +162,7 @@ const App: Component = () => {
       <h1>cleanfollow-bsky</h1>
       <div class={styles.Warning}>
         <p>
-          unfollows all deleted/deactivated accounts and accounts you follow
-          that have blocked you
+          Unfollows all deleted, deactivated, and blocked accounts you follow
         </p>
         <p>USE AT YOUR OWN RISK</p>
         <a href="https://github.com/notjuliet/cleanfollow-bsky">Source Code</a>

@@ -1,7 +1,7 @@
 {
-  "name": "vite-template-solid",
+  "name": "cleanfollow-bsky",
   "version": "0.0.0",
-  "description": "",
+  "description": "unfollows deleted, deactivated, and blocked bluesky accounts",
   "type": "module",
   "scripts": {
     "start": "vite",
@@ -9,7 +9,7 @@
     "build": "vite build",
     "serve": "vite preview"
   },
-  "license": "MIT",
+  "license": "0BSD",
   "devDependencies": {
     "solid-devtools": "^0.29.2",
     "typescript": "^5.3.3",
