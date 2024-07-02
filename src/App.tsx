@@ -66,7 +66,7 @@ const unfollowBsky = async (form: Form, preview: boolean) => {
     return;
   }
 
-  if (true || Object.keys(followRecords).length == 0 || preview) {
+  if (Object.keys(followRecords).length == 0 || preview) {
     if (preview) followRecords = {};
 
     await fetchFollows(agent).then((res) =>
