@@ -99,7 +99,7 @@ const unfollowBsky = async (form: Form, preview: boolean) => {
           });
           updateNotices(
             "Found account you are blocked by: " +
-              unfollowRecords[i + n].did +
+              followRecords[i + n].value.subject +
               " (" +
               res.data.profiles[i].handle +
               ")",
@@ -121,7 +121,7 @@ const unfollowBsky = async (form: Form, preview: boolean) => {
                 status: RepoStatus.DELETED,
               });
               updateNotices(
-                "Found deleted account: " + unfollowRecords[i + n].did,
+                "Found deleted account: " + followRecords[i + n].value.subject,
               );
             } else if (form.deactivated && e.message.includes(" deactivated")) {
               unfollowRecords.push({
@@ -130,7 +130,8 @@ const unfollowBsky = async (form: Form, preview: boolean) => {
                 status: RepoStatus.DEACTIVATED,
               });
               updateNotices(
-                "Found deactivated account: " + unfollowRecords[i + n].did,
+                "Found deactivated account: " +
+                  followRecords[i + n].value.subject,
               );
             }
           }
