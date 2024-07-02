@@ -19,14 +19,14 @@ enum RepoStatus {
   BLOCKEDBY = "Blocked By",
 }
 
-type unfollowRecord = {
+type followRecord = {
   uri: string;
   did: string;
   status: RepoStatus;
 };
 
 let [notices, setNotices] = createSignal<string[]>([], { equals: false });
-let unfollowRecords: unfollowRecord[] = [];
+let unfollowRecords: followRecord[] = [];
 
 const fetchFollows = async (agent: any) => {
   const PAGE_LIMIT = 100;
@@ -75,67 +75,67 @@ const unfollowBsky = async (form: Form, preview: boolean) => {
 
   if (unfollowRecords.length == 0 || preview) {
     if (preview) unfollowRecords = [];
-    let followRecords = await fetchFollows(agent);
 
-    let followsDID: string[] = [];
-    for (let n = 0; n < followRecords.length; n++)
-      followsDID[n] = followRecords[n].value.subject;
-
+    const followRecords: followRecord[] = await fetchFollows(agent).then((x) =>
+      x.map((x: any) => ({
+        did: x.value.subject,
+        uri: x.uri,
+      })),
+    );
     const PROFILES_LIMIT = 25;
 
-    for (let n = 0; n < followsDID.length; n = n + PROFILES_LIMIT) {
+    for (let n = 0; n < followRecords.length; n = n + PROFILES_LIMIT) {
       const res = await agent.getProfiles({
-        actors: followsDID.slice(n, n + PROFILES_LIMIT),
+        actors: followRecords.slice(n, n + PROFILES_LIMIT).map((x) => x.did),
       });
 
-      let tmpDID: string[] = [];
-      for (let i = 0; i < res.data.profiles.length; i++) {
-        tmpDID[i] = res.data.profiles[i].did;
-        if (form.blockedby && res.data.profiles[i].viewer?.blockedBy) {
-          unfollowRecords.push({
-            uri: followRecords[i + n].uri,
-            did: followRecords[i + n].value.subject,
-            status: RepoStatus.BLOCKEDBY,
-          });
-          updateNotices(
-            "Found account you are blocked by: " +
-              followRecords[i + n].value.subject +
-              " (" +
-              res.data.profiles[i].handle +
-              ")",
-          );
-        }
-      }
-      for (let i = 0; i < PROFILES_LIMIT && n + i < followsDID.length; i++) {
-        if (
-          (form.deleted || form.deactivated) &&
-          !tmpDID.includes(followsDID[i + n])
-        ) {
-          try {
-            await agent.getProfile({ actor: followsDID[i + n] });
-          } catch (e: any) {
-            if (form.deleted && e.message.includes("not found")) {
-              unfollowRecords.push({
-                uri: followRecords[i + n].uri,
-                did: followRecords[i + n].value.subject,
-                status: RepoStatus.DELETED,
-              });
-              updateNotices(
-                "Found deleted account: " + followRecords[i + n].value.subject,
-              );
-            } else if (form.deactivated && e.message.includes(" deactivated")) {
-              unfollowRecords.push({
-                uri: followRecords[i + n].uri,
-                did: followRecords[i + n].value.subject,
-                status: RepoStatus.DEACTIVATED,
-              });
-              updateNotices(
-                "Found deactivated account: " +
-                  followRecords[i + n].value.subject,
-              );
-            }
+      if (form.blockedby) {
+        res.data.profiles.map((x, i) => {
+          if (x.viewer?.blockedBy) {
+            unfollowRecords.push({
+              uri: followRecords[i + n].uri,
+              did: x.did,
+              status: RepoStatus.BLOCKEDBY,
+            });
+            updateNotices(
+              `Found account you are blocked by: ${x.did} (${x.handle})`,
+            );
           }
-        }
+        });
+      }
+
+      if (form.deleted || form.deactivated) {
+        followRecords
+          .slice(n, n + PROFILES_LIMIT)
+          .filter((record) => {
+            if (!res.data.profiles.map((x) => x.did).includes(record.did)) {
+              return { did: record.did, uri: record.uri };
+            }
+          })
+          .forEach(async (record) => {
+            try {
+              await agent.getProfile({ actor: record.did });
+            } catch (e: any) {
+              if (form.deleted && e.message.includes("not found")) {
+                unfollowRecords.push({
+                  uri: record.uri,
+                  did: record.did,
+                  status: RepoStatus.DELETED,
+                });
+                updateNotices(`Found deleted account: ${record.did}`);
+              } else if (
+                form.deactivated &&
+                e.message.includes(" deactivated")
+              ) {
+                unfollowRecords.push({
+                  uri: record.uri,
+                  did: record.did,
+                  status: RepoStatus.DEACTIVATED,
+                });
+                updateNotices(`Found deactivated account: ${record.did}`);
+              }
+            }
+          });
       }
     }
   }
