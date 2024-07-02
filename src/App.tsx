@@ -13,20 +13,13 @@ type Form = {
   deactivated: boolean;
 };
 
-enum RepoStatus {
-  DELETED = "Deleted",
-  DEACTIVATED = "Deactivated",
-  BLOCKEDBY = "Blocked By",
-}
-
 type followRecord = {
   uri: string;
-  did: string;
-  status: RepoStatus;
+  toBeDeleted: boolean;
 };
 
 let [notices, setNotices] = createSignal<string[]>([], { equals: false });
-let unfollowRecords: followRecord[] = [];
+let followRecords: Record<string, followRecord> = {};
 
 const fetchFollows = async (agent: any) => {
   const PAGE_LIMIT = 100;
@@ -73,30 +66,32 @@ const unfollowBsky = async (form: Form, preview: boolean) => {
     return;
   }
 
-  if (unfollowRecords.length == 0 || preview) {
-    if (preview) unfollowRecords = [];
+  if (true || Object.keys(followRecords).length == 0 || preview) {
+    if (preview) followRecords = {};
 
-    const followRecords: followRecord[] = await fetchFollows(agent).then((x) =>
-      x.map((x: any) => ({
-        did: x.value.subject,
-        uri: x.uri,
-      })),
+    await fetchFollows(agent).then((res) =>
+      res.forEach((x: any) => {
+        followRecords[x.value.subject] = {
+          uri: x.uri,
+          toBeDeleted: false,
+        };
+      }),
     );
     const PROFILES_LIMIT = 25;
 
-    for (let n = 0; n < followRecords.length; n = n + PROFILES_LIMIT) {
+    for (
+      let n = 0;
+      n < Object.keys(followRecords).length;
+      n = n + PROFILES_LIMIT
+    ) {
       const res = await agent.getProfiles({
-        actors: followRecords.slice(n, n + PROFILES_LIMIT).map((x) => x.did),
+        actors: Object.keys(followRecords).slice(n, n + PROFILES_LIMIT),
       });
 
       if (form.blockedby) {
-        res.data.profiles.map((x, i) => {
+        res.data.profiles.forEach((x) => {
           if (x.viewer?.blockedBy) {
-            unfollowRecords.push({
-              uri: followRecords[i + n].uri,
-              did: x.did,
-              status: RepoStatus.BLOCKEDBY,
-            });
+            followRecords[x.did].toBeDeleted = true;
             updateNotices(
               `Found account you are blocked by: ${x.did} (${x.handle})`,
             );
@@ -105,34 +100,23 @@ const unfollowBsky = async (form: Form, preview: boolean) => {
       }
 
       if (form.deleted || form.deactivated) {
-        followRecords
+        Object.keys(followRecords)
           .slice(n, n + PROFILES_LIMIT)
-          .filter((record) => {
-            if (!res.data.profiles.map((x) => x.did).includes(record.did)) {
-              return { did: record.did, uri: record.uri };
-            }
-          })
-          .forEach(async (record) => {
-            try {
-              await agent.getProfile({ actor: record.did });
-            } catch (e: any) {
-              if (form.deleted && e.message.includes("not found")) {
-                unfollowRecords.push({
-                  uri: record.uri,
-                  did: record.did,
-                  status: RepoStatus.DELETED,
-                });
-                updateNotices(`Found deleted account: ${record.did}`);
-              } else if (
-                form.deactivated &&
-                e.message.includes(" deactivated")
-              ) {
-                unfollowRecords.push({
-                  uri: record.uri,
-                  did: record.did,
-                  status: RepoStatus.DEACTIVATED,
-                });
-                updateNotices(`Found deactivated account: ${record.did}`);
+          .filter(async (did) => {
+            if (!res.data.profiles.map((x) => x.did).includes(did)) {
+              try {
+                await agent.getProfile({ actor: did });
+              } catch (e: any) {
+                if (form.deleted && e.message.includes("not found")) {
+                  followRecords[did].toBeDeleted = true;
+                  updateNotices(`Found deleted account: ${did}`);
+                } else if (
+                  form.deactivated &&
+                  e.message.includes(" deactivated")
+                ) {
+                  followRecords[did].toBeDeleted = true;
+                  updateNotices(`Found deactivated account: ${did}`);
+                }
               }
             }
           });
@@ -140,18 +124,16 @@ const unfollowBsky = async (form: Form, preview: boolean) => {
     }
   }
 
+  console.log(followRecords);
+
   if (!preview) {
-    for (const record of unfollowRecords) {
-      if (
-        (form.deleted && record.status == RepoStatus.DELETED) ||
-        (form.deactivated && record.status == RepoStatus.DEACTIVATED) ||
-        (form.blockedby && record.status == RepoStatus.BLOCKEDBY)
-      ) {
-        await agent.deleteFollow(record.uri);
-        updateNotices("Unfollowed account: " + record.did);
+    for (const did of Object.keys(followRecords)) {
+      if (followRecords[did].toBeDeleted) {
+        await agent.deleteFollow(followRecords[did].uri);
+        updateNotices("Unfollowed account: " + did);
       }
     }
-    unfollowRecords = [];
+    followRecords = {};
   }
 
   updateNotices("Done");
