@@ -107,8 +107,11 @@ const unfollowBsky = async (form: Form, preview: boolean) => {
           );
         }
       }
-      for (let i = 0; i < res.data.profiles.length; i++) {
-        if (!tmpDID.includes(followsDID[i + n])) {
+      for (let i = 0; i < PROFILES_LIMIT && n + i < followsDID.length; i++) {
+        if (
+          (form.deleted || form.deactivated) &&
+          !tmpDID.includes(followsDID[i + n])
+        ) {
           try {
             await agent.getProfile({ actor: followsDID[i + n] });
           } catch (e: any) {
