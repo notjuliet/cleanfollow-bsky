@@ -124,8 +124,6 @@ const unfollowBsky = async (form: Form, preview: boolean) => {
     }
   }
 
-  console.log(followRecords);
-
   if (!preview) {
     for (const did of Object.keys(followRecords)) {
       if (followRecords[did].toBeDeleted) {
