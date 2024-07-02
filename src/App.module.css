@@ -22,8 +22,12 @@ input {
   font-size: 125%;
 }
 
+label {
+  margin-right: 10px;
+}
+
 button {
-  margin: 10px;
+  margin: 15px;
   font-size: 125%;
 }
 
