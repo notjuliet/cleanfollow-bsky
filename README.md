@@ -1,5 +1,3 @@
 ## cleanfollow-bsky
 
-lil webapp to automatically unfollow deleted/deactivated accounts and accounts that have blocked you before you could unfollow
-
-WARNING: i havent found a way yet to differentiate deactivated accounts from deleted accounts, they will both be unfollowed
+lil web app to unfollow deleted/deactivated/blocked by accounts

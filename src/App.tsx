@@ -68,7 +68,7 @@ const unfollowBsky = async (
           unfollowURIsIndexes.push(i + n);
           setUnfollowNotice(
             unfollowNotice() +
-              "Found blocked account: " +
+              "Found account you are blocked by: " +
               followRecords[i + n].value.subject +
               " (" +
               res.data.profiles[i].handle +
@@ -78,13 +78,21 @@ const unfollowBsky = async (
       }
       for (let i = 0; i < res.data.profiles.length; i++) {
         if (!tmpDID.includes(followsDID[i + n])) {
-          unfollowURIsIndexes.push(i + n);
+          try {
+            await agent.getProfile({ actor: followsDID[i + n] });
+          } catch (e: any) {
+            if (e.message.includes("not found")) {
+              setUnfollowNotice(unfollowNotice() + "Found deleted account: ");
+            } else if (e.message.includes(" deactivated")) {
+              setUnfollowNotice(
+                unfollowNotice() + "Found deactivated account: ",
+              );
+            }
+          }
           setUnfollowNotice(
-            unfollowNotice() +
-              "Found deleted account: " +
-              followRecords[i + n].value.subject +
-              "<br>",
+            unfollowNotice() + followRecords[i + n].value.subject + "<br>",
           );
+          unfollowURIsIndexes.push(i + n);
         }
       }
     }
@@ -163,9 +171,7 @@ const App: Component = () => {
     <div class={styles.App}>
       <h1>cleanfollow-bsky</h1>
       <div class={styles.Warning}>
-        <p>
-          Unfollows all deleted, deactivated, and blocked accounts you follow
-        </p>
+        <p>Unfollows all deleted, deactivated, and blocked by accounts</p>
         <p>USE AT YOUR OWN RISK</p>
         <a href="https://github.com/notjuliet/cleanfollow-bsky">Source Code</a>
       </div>
