@@ -27,7 +27,6 @@ type unfollowRecord = {
 
 let [notices, setNotices] = createSignal<string[]>([], { equals: false });
 let unfollowRecords: unfollowRecord[] = [];
-let followRecords: any[];
 
 const fetchFollows = async (agent: any) => {
   const PAGE_LIMIT = 100;
@@ -76,7 +75,7 @@ const unfollowBsky = async (form: Form, preview: boolean) => {
 
   if (unfollowRecords.length == 0 || preview) {
     if (preview) unfollowRecords = [];
-    followRecords = await fetchFollows(agent);
+    let followRecords = await fetchFollows(agent);
 
     let followsDID: string[] = [];
     for (let n = 0; n < followRecords.length; n++)
@@ -100,7 +99,7 @@ const unfollowBsky = async (form: Form, preview: boolean) => {
           });
           updateNotices(
             "Found account you are blocked by: " +
-              followRecords[i + n].value.subject +
+              unfollowRecords[i + n].did +
               " (" +
               res.data.profiles[i].handle +
               ")",
@@ -116,24 +115,23 @@ const unfollowBsky = async (form: Form, preview: boolean) => {
             await agent.getProfile({ actor: followsDID[i + n] });
           } catch (e: any) {
             if (form.deleted && e.message.includes("not found")) {
-              updateNotices(
-                "Found deleted account: " + followRecords[i + n].value.subject,
-              );
               unfollowRecords.push({
                 uri: followRecords[i + n].uri,
                 did: followRecords[i + n].value.subject,
                 status: RepoStatus.DELETED,
               });
-            } else if (form.deactivated && e.message.includes(" deactivated")) {
               updateNotices(
-                "Found deactivated account: " +
-                  followRecords[i + n].value.subject,
+                "Found deleted account: " + unfollowRecords[i + n].did,
               );
+            } else if (form.deactivated && e.message.includes(" deactivated")) {
               unfollowRecords.push({
                 uri: followRecords[i + n].uri,
                 did: followRecords[i + n].value.subject,
                 status: RepoStatus.DEACTIVATED,
               });
+              updateNotices(
+                "Found deactivated account: " + unfollowRecords[i + n].did,
+              );
             }
           }
         }
@@ -153,7 +151,6 @@ const unfollowBsky = async (form: Form, preview: boolean) => {
       }
     }
     unfollowRecords = [];
-    followRecords = [];
   }
 
   updateNotices("Done");
