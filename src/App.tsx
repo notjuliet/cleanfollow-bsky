@@ -1,10 +1,32 @@
-import { createSignal, type Component } from "solid-js";
+import { createSignal, For, type Component } from "solid-js";
+import { createStore } from "solid-js/store";
 
 import styles from "./App.module.css";
 import { BskyAgent } from "@atproto/api";
 
-const [unfollowNotice, setUnfollowNotice] = createSignal("");
-let unfollowURIsIndexes: number[] = [];
+type Form = {
+  serviceURL: string;
+  handle: string;
+  password: string;
+  blockedby: boolean;
+  deleted: boolean;
+  deactivated: boolean;
+};
+
+enum RepoStatus {
+  DELETED = "Deleted",
+  DEACTIVATED = "Deactivated",
+  BLOCKEDBY = "Blocked By",
+}
+
+type unfollowRecord = {
+  uri: string;
+  did: string;
+  status: RepoStatus;
+};
+
+let [notices, setNotices] = createSignal<string[]>([], { equals: false });
+let unfollowRecords: unfollowRecord[] = [];
 let followRecords: any[];
 
 const fetchFollows = async (agent: any) => {
@@ -29,25 +51,31 @@ const fetchFollows = async (agent: any) => {
   return follows;
 };
 
-const unfollowBsky = async (
-  userHandle: any,
-  userPassword: any,
-  serviceURL: any,
-  preview: boolean,
-) => {
-  setUnfollowNotice("");
+function updateNotices(newNotice: string) {
+  let tmp: string[] = notices();
+  tmp.push(newNotice);
+  setNotices(tmp);
+}
+
+const unfollowBsky = async (form: Form, preview: boolean) => {
+  setNotices([]);
 
   const agent = new BskyAgent({
-    service: serviceURL,
+    service: form.serviceURL,
   });
 
-  await agent.login({
-    identifier: userHandle,
-    password: userPassword,
-  });
+  try {
+    await agent.login({
+      identifier: form.handle,
+      password: form.password,
+    });
+  } catch (e: any) {
+    updateNotices(e.message);
+    return;
+  }
 
-  if (unfollowURIsIndexes.length == 0 || preview) {
-    if (preview) unfollowURIsIndexes = [];
+  if (unfollowRecords.length == 0 || preview) {
+    if (preview) unfollowRecords = [];
     followRecords = await fetchFollows(agent);
 
     let followsDID: string[] = [];
@@ -64,15 +92,18 @@ const unfollowBsky = async (
       let tmpDID: string[] = [];
       for (let i = 0; i < res.data.profiles.length; i++) {
         tmpDID[i] = res.data.profiles[i].did;
-        if (res.data.profiles[i].viewer?.blockedBy) {
-          unfollowURIsIndexes.push(i + n);
-          setUnfollowNotice(
-            unfollowNotice() +
-              "Found account you are blocked by: " +
+        if (form.blockedby && res.data.profiles[i].viewer?.blockedBy) {
+          unfollowRecords.push({
+            uri: followRecords[i + n].uri,
+            did: followRecords[i + n].value.subject,
+            status: RepoStatus.BLOCKEDBY,
+          });
+          updateNotices(
+            "Found account you are blocked by: " +
               followRecords[i + n].value.subject +
               " (" +
               res.data.profiles[i].handle +
-              ")<br>",
+              ")",
           );
         }
       }
@@ -81,87 +112,130 @@ const unfollowBsky = async (
           try {
             await agent.getProfile({ actor: followsDID[i + n] });
           } catch (e: any) {
-            if (e.message.includes("not found")) {
-              setUnfollowNotice(unfollowNotice() + "Found deleted account: ");
-            } else if (e.message.includes(" deactivated")) {
-              setUnfollowNotice(
-                unfollowNotice() + "Found deactivated account: ",
+            if (form.deleted && e.message.includes("not found")) {
+              updateNotices(
+                "Found deleted account: " + followRecords[i + n].value.subject,
               );
+              unfollowRecords.push({
+                uri: followRecords[i + n].uri,
+                did: followRecords[i + n].value.subject,
+                status: RepoStatus.DELETED,
+              });
+            } else if (form.deactivated && e.message.includes(" deactivated")) {
+              updateNotices(
+                "Found deactivated account: " +
+                  followRecords[i + n].value.subject,
+              );
+              unfollowRecords.push({
+                uri: followRecords[i + n].uri,
+                did: followRecords[i + n].value.subject,
+                status: RepoStatus.DEACTIVATED,
+              });
             }
           }
-          setUnfollowNotice(
-            unfollowNotice() + followRecords[i + n].value.subject + "<br>",
-          );
-          unfollowURIsIndexes.push(i + n);
         }
       }
     }
   }
 
   if (!preview) {
-    for (const i of unfollowURIsIndexes) {
-      await agent.deleteFollow(followRecords[i].uri);
-      setUnfollowNotice(
-        unfollowNotice() +
-          "Unfollowed account: " +
-          followRecords[i].value.subject +
-          "<br>",
-      );
+    for (const record of unfollowRecords) {
+      if (
+        (form.deleted && record.status == RepoStatus.DELETED) ||
+        (form.deactivated && record.status == RepoStatus.DEACTIVATED) ||
+        (form.blockedby && record.status == RepoStatus.BLOCKEDBY)
+      ) {
+        await agent.deleteFollow(record.uri);
+        updateNotices("Unfollowed account: " + record.did);
+      }
     }
-    unfollowURIsIndexes = [];
+    unfollowRecords = [];
     followRecords = [];
   }
 
-  setUnfollowNotice(unfollowNotice() + "Done");
+  updateNotices("Done");
+};
+
+const Notice: Component = () => {
+  return (
+    <div>
+      <For each={notices()}>
+        {(item) => (
+          <span>
+            {item}
+            <br />
+          </span>
+        )}
+      </For>
+    </div>
+  );
 };
 
 const UnfollowForm: Component = () => {
-  const [userHandle, setUserHandle] = createSignal();
-  const [appPassword, setAppPassword] = createSignal();
-  const [serviceURL, setserviceURL] = createSignal("https://bsky.social");
+  const [formStore, setFormStore] = createStore<Form>({
+    serviceURL: "https://bsky.social",
+    handle: "",
+    password: "",
+    blockedby: true,
+    deleted: true,
+    deactivated: false,
+  });
 
   return (
     <div>
-      <form>
-        <div>
-          <input
-            type="text"
-            placeholder="https://bsky.social (optional)"
-            onInput={(e) => setserviceURL(e.currentTarget.value)}
-          />
-        </div>
-        <div>
-          <input
-            type="text"
-            placeholder="Handle"
-            onInput={(e) => setUserHandle(e.currentTarget.value)}
-          />
-        </div>
-        <div>
-          <input
-            type="password"
-            placeholder="App Password"
-            onInput={(e) => setAppPassword(e.currentTarget.value)}
-          />
-        </div>
-        <button
-          type="button"
-          onclick={() =>
-            unfollowBsky(userHandle(), appPassword(), serviceURL(), true)
-          }
-        >
-          Preview
-        </button>
-        <button
-          type="button"
-          onclick={() =>
-            unfollowBsky(userHandle(), appPassword(), serviceURL(), false)
-          }
-        >
-          Unfollow
-        </button>
-      </form>
-      <div innerHTML={unfollowNotice()}></div>
+      <div>
+        <input
+          type="text"
+          placeholder="https://bsky.social (optional)"
+          onInput={(e) => {
+            if (e.currentTarget.value)
+              setFormStore("serviceURL", e.currentTarget.value);
+            else setFormStore("serviceURL", "https://bsky.social");
+          }}
+        />
+      </div>
+      <div>
+        <input
+          type="text"
+          placeholder="Handle"
+          onInput={(e) => setFormStore("handle", e.currentTarget.value)}
+        />
+      </div>
+      <div>
+        <input
+          type="password"
+          placeholder="App Password"
+          onInput={(e) => setFormStore("password", e.currentTarget.value)}
+        />
+      </div>
+      <div>
+        <input
+          type="checkbox"
+          id="blockedby"
+          checked
+          onChange={(e) => setFormStore("blockedby", e.currentTarget.checked)}
+        />
+        <label for="blockedby">Blocked By</label>
+        <input
+          type="checkbox"
+          id="deleted"
+          onChange={(e) => setFormStore("deleted", e.currentTarget.checked)}
+          checked
+        />
+        <label for="deleted">Deleted</label>
+        <input
+          type="checkbox"
+          id="deactivated"
+          onChange={(e) => setFormStore("deactivated", e.currentTarget.checked)}
+        />
+        <label for="deactivated">Deactivated</label>
+      </div>
+      <button type="button" onclick={() => unfollowBsky(formStore, true)}>
+        Preview
+      </button>
+      <button type="button" onclick={() => unfollowBsky(formStore, false)}>
+        Unfollow
+      </button>
     </div>
   );
 };
@@ -171,11 +245,11 @@ const App: Component = () => {
     <div class={styles.App}>
       <h1>cleanfollow-bsky</h1>
       <div class={styles.Warning}>
-        <p>Unfollows all deleted, deactivated, and blocked by accounts</p>
-        <p>USE AT YOUR OWN RISK</p>
+        <p>Unfollows all blocked by, deleted, and deactivated accounts</p>
         <a href="https://github.com/notjuliet/cleanfollow-bsky">Source Code</a>
       </div>
       <UnfollowForm />
+      <Notice />
     </div>
   );
 };
