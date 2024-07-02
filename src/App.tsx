@@ -13,13 +13,8 @@ type Form = {
   deactivated: boolean;
 };
 
-type followRecord = {
-  uri: string;
-  toBeDeleted: boolean;
-};
-
 let [notices, setNotices] = createSignal<string[]>([], { equals: false });
-let followRecords: Record<string, followRecord> = {};
+let followRecords: Record<string, { uri: string; toBeDeleted: boolean }> = {};
 
 const fetchFollows = async (agent: any) => {
   const PAGE_LIMIT = 100;
@@ -112,7 +107,7 @@ const unfollowBsky = async (form: Form, preview: boolean) => {
                   updateNotices(`Found deleted account: ${did}`);
                 } else if (
                   form.deactivated &&
-                  e.message.includes(" deactivated")
+                  e.message.includes("deactivated")
                 ) {
                   followRecords[did].toBeDeleted = true;
                   updateNotices(`Found deactivated account: ${did}`);
