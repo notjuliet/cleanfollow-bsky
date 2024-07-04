@@ -97,7 +97,7 @@ const unfollowBsky = async (form: Form, preview: boolean) => {
       if (form.deleted || form.deactivated) {
         Object.keys(followRecords)
           .slice(n, n + PROFILES_LIMIT)
-          .filter(async (did) => {
+          .forEach(async (did) => {
             if (!res.data.profiles.map((x) => x.did).includes(did)) {
               try {
                 await agent.getProfile({ actor: did });
