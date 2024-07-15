@@ -222,6 +222,11 @@ const App: Component = () => {
       <h1>cleanfollow-bsky</h1>
       <div class={styles.Warning}>
         <p>Unfollows all blocked by, deleted, and deactivated accounts</p>
+        <p>
+          You can use the{" "}
+          <a href="https://web.plc.directory/resolve">DID PLC Directory</a> to
+          check the identity behind a DID
+        </p>
         <a href="https://github.com/notjuliet/cleanfollow-bsky">Source Code</a>
       </div>
       <UnfollowForm />
