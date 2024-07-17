@@ -1,4 +1,4 @@
-import { createSignal, For, type Component } from "solid-js";
+import { createSignal, For, Show, type Component } from "solid-js";
 import { createStore } from "solid-js/store";
 
 import styles from "./App.module.css";
@@ -14,6 +14,8 @@ type Form = {
 };
 
 let [notices, setNotices] = createSignal<string[]>([], { equals: false });
+let [progress, setProgress] = createSignal(0);
+let [followCount, setFollowCount] = createSignal(0);
 let followRecords: Record<string, { uri: string; toBeDeleted: boolean }> = {};
 
 const fetchFollows = async (agent: any) => {
@@ -72,51 +74,31 @@ const unfollowBsky = async (form: Form, preview: boolean) => {
         };
       }),
     );
-    const PROFILES_LIMIT = 25;
 
-    for (
-      let n = 0;
-      n < Object.keys(followRecords).length;
-      n = n + PROFILES_LIMIT
-    ) {
-      const res = await agent.getProfiles({
-        actors: Object.keys(followRecords).slice(n, n + PROFILES_LIMIT),
-      });
+    setProgress(0);
+    setFollowCount(Object.keys(followRecords).length);
 
-      if (form.blockedby) {
-        res.data.profiles.forEach((x) => {
-          if (x.viewer?.blockedBy) {
-            followRecords[x.did].toBeDeleted = true;
-            updateNotices(
-              `Found account you are blocked by: ${x.did} (${x.handle})`,
-            );
-          }
-        });
+    Object.keys(followRecords).forEach(async (did) => {
+      try {
+        const res = await agent.getProfile({ actor: did });
+        if (res.data.viewer?.blockedBy) {
+          followRecords[did].toBeDeleted = true;
+          updateNotices(
+            `Found account you are blocked by: ${did} (${res.data.handle})`,
+          );
+        }
+      } catch (e: any) {
+        console.log(e.message);
+        if (form.deleted && e.message.includes("not found")) {
+          followRecords[did].toBeDeleted = true;
+          updateNotices(`Found deleted account: ${did}`);
+        } else if (form.deactivated && e.message.includes("deactivated")) {
+          followRecords[did].toBeDeleted = true;
+          updateNotices(`Found deactivated account: ${did}`);
+        }
       }
-
-      if (form.deleted || form.deactivated) {
-        Object.keys(followRecords)
-          .slice(n, n + PROFILES_LIMIT)
-          .forEach(async (did) => {
-            if (!res.data.profiles.map((x) => x.did).includes(did)) {
-              try {
-                await agent.getProfile({ actor: did });
-              } catch (e: any) {
-                if (form.deleted && e.message.includes("not found")) {
-                  followRecords[did].toBeDeleted = true;
-                  updateNotices(`Found deleted account: ${did}`);
-                } else if (
-                  form.deactivated &&
-                  e.message.includes("deactivated")
-                ) {
-                  followRecords[did].toBeDeleted = true;
-                  updateNotices(`Found deactivated account: ${did}`);
-                }
-              }
-            }
-          });
-      }
-    }
+      setProgress(progress() + 1);
+    });
   }
 
   if (!preview) {
@@ -128,23 +110,6 @@ const unfollowBsky = async (form: Form, preview: boolean) => {
     }
     followRecords = {};
   }
-
-  updateNotices("Done");
-};
-
-const Notice: Component = () => {
-  return (
-    <div>
-      <For each={notices()}>
-        {(item) => (
-          <span>
-            {item}
-            <br />
-          </span>
-        )}
-      </For>
-    </div>
-  );
 };
 
 const UnfollowForm: Component = () => {
@@ -230,7 +195,22 @@ const App: Component = () => {
         <a href="https://github.com/notjuliet/cleanfollow-bsky">Source Code</a>
       </div>
       <UnfollowForm />
-      <Notice />
+      <Show when={followCount()}>
+        <div>
+          Progress: {progress()}/{followCount()}
+        </div>
+        <br />
+      </Show>
+      <div>
+        <For each={notices()}>
+          {(item) => (
+            <span>
+              {item}
+              <br />
+            </span>
+          )}
+        </For>
+      </div>
     </div>
   );
 };
