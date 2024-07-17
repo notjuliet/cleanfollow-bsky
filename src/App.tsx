@@ -5,7 +5,6 @@ import styles from "./App.module.css";
 import { BskyAgent } from "@atproto/api";
 
 type Form = {
-  serviceURL: string;
   handle: string;
   password: string;
   blockedby: boolean;
@@ -46,11 +45,43 @@ function updateNotices(newNotice: string) {
   setNotices(tmp);
 }
 
+const resolveHandle = async (handle: string) => {
+  const agent = new BskyAgent({
+    service: "https://public.api.bsky.app",
+  });
+
+  const res = await agent.com.atproto.identity.resolveHandle({
+    handle: handle,
+  });
+
+  return res.data.did;
+};
+
+const fetchServiceEndpoint = async (handle: string) => {
+  const did = await resolveHandle(handle);
+
+  const res = await fetch(
+    did.startsWith("did:web")
+      ? "https://" + did.split(":")[2] + "/.well-known/did.json"
+      : "https://plc.directory/" + did,
+  );
+
+  return res.json().then((doc) => {
+    for (const service of doc.service) {
+      if (service.id.includes("#atproto_pds")) {
+        return service.serviceEndpoint;
+      }
+    }
+  });
+};
+
 const unfollowBsky = async (form: Form, preview: boolean) => {
   setNotices([]);
 
+  const serviceURL = await fetchServiceEndpoint(form.handle);
+
   const agent = new BskyAgent({
-    service: form.serviceURL,
+    service: serviceURL,
   });
 
   try {
@@ -114,7 +145,6 @@ const unfollowBsky = async (form: Form, preview: boolean) => {
 
 const UnfollowForm: Component = () => {
   const [formStore, setFormStore] = createStore<Form>({
-    serviceURL: "https://bsky.social",
     handle: "",
     password: "",
     blockedby: true,
@@ -124,17 +154,6 @@ const UnfollowForm: Component = () => {
 
   return (
     <div>
-      <div>
-        <input
-          type="text"
-          placeholder="https://bsky.social (optional)"
-          onInput={(e) => {
-            if (e.currentTarget.value)
-              setFormStore("serviceURL", e.currentTarget.value);
-            else setFormStore("serviceURL", "https://bsky.social");
-          }}
-        />
-      </div>
       <div>
         <input
           type="text"
