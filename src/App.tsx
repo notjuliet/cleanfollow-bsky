@@ -66,7 +66,7 @@ const fetchServiceEndpoint = async (handle: string) => {
       : "https://plc.directory/" + did,
   );
 
-  return res.json().then((doc) => {
+  return await res.json().then((doc) => {
     for (const service of doc.service) {
       if (service.id.includes("#atproto_pds")) {
         return service.serviceEndpoint;
@@ -120,12 +120,26 @@ const unfollowBsky = async (form: Form, preview: boolean) => {
         }
       } catch (e: any) {
         console.log(e.message);
+        const res = await fetch(
+          did.startsWith("did:web")
+            ? "https://" + did.split(":")[2] + "/.well-known/did.json"
+            : "https://plc.directory/" + did,
+        );
+
+        const handle = await res.json().then((doc) => {
+          for (const alias of doc.alsoKnownAs) {
+            if (alias.includes("at://")) {
+              return alias.split("//")[1];
+            }
+          }
+        });
+
         if (form.deleted && e.message.includes("not found")) {
           followRecords[did].toBeDeleted = true;
-          updateNotices(`Found deleted account: ${did}`);
+          updateNotices(`Found deleted account: ${did} (${handle})`);
         } else if (form.deactivated && e.message.includes("deactivated")) {
           followRecords[did].toBeDeleted = true;
-          updateNotices(`Found deactivated account: ${did}`);
+          updateNotices(`Found deactivated account: ${did} (${handle})`);
         }
       }
       setProgress(progress() + 1);
@@ -206,11 +220,6 @@ const App: Component = () => {
       <h1>cleanfollow-bsky</h1>
       <div class={styles.Warning}>
         <p>Unfollows all blocked by, deleted, and deactivated accounts</p>
-        <p>
-          You can use the{" "}
-          <a href="https://web.plc.directory/resolve">DID PLC Directory</a> to
-          check the identity behind a DID
-        </p>
         <a href="https://github.com/notjuliet/cleanfollow-bsky">Source Code</a>
       </div>
       <UnfollowForm />
