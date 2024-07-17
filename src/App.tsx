@@ -66,10 +66,10 @@ const unfollowBsky = async (form: Form, preview: boolean) => {
   if (Object.keys(followRecords).length == 0 || preview) {
     if (preview) followRecords = {};
 
-    await fetchFollows(agent).then((res) =>
-      res.forEach((x: any) => {
-        followRecords[x.value.subject] = {
-          uri: x.uri,
+    await fetchFollows(agent).then((follows) =>
+      follows.forEach((record: any) => {
+        followRecords[record.value.subject] = {
+          uri: record.uri,
           toBeDeleted: false,
         };
       }),
