@@ -178,11 +178,14 @@ const unfollowBsky = async (form: Form, preview: boolean) => {
         };
       });
 
+    const BATCHSIZE = 200;
     if (agent.session) {
-      await agent.com.atproto.repo.applyWrites({
-        repo: agent.session.did,
-        writes: writes,
-      });
+      for (let i = 0; i < writes.length; i += BATCHSIZE) {
+        await agent.com.atproto.repo.applyWrites({
+          repo: agent.session.did,
+          writes: writes.slice(i, i + BATCHSIZE),
+        });
+      }
     }
 
     setNotices([`Unfollowed ${unfollowCount} accounts.`]);
