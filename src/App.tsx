@@ -162,20 +162,30 @@ const unfollowBsky = async (form: Form, preview: boolean) => {
   }
 
   if (!preview) {
-    setProgress(0);
-    setFollowCount(
-      Object.values(followRecords).filter((record) => record.toBeDeleted)
-        .length,
-    );
-    for (const did of Object.keys(followRecords)) {
-      if (followRecords[did].toBeDeleted) {
-        await agent.deleteFollow(followRecords[did].uri);
-        updateNotices(
-          `Unfollowed account: ${did} (${followRecords[did].handle})`,
-        );
-        setProgress(progress() + 1);
-      }
+    setFollowCount(0);
+
+    const unfollowCount = Object.values(followRecords).filter(
+      (record) => record.toBeDeleted,
+    ).length;
+
+    const writes = Object.values(followRecords)
+      .filter((record) => record.toBeDeleted)
+      .map((record) => {
+        return {
+          $type: "com.atproto.repo.applyWrites#delete",
+          collection: "app.bsky.graph.follow",
+          rkey: record.uri.split("/").pop(),
+        };
+      });
+
+    if (agent.session) {
+      await agent.com.atproto.repo.applyWrites({
+        repo: agent.session.did,
+        writes: writes,
+      });
     }
+
+    setNotices([`Unfollowed ${unfollowCount} accounts.`]);
     followRecords = {};
   }
 };
