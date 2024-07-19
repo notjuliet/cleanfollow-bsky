@@ -16,7 +16,10 @@ type Form = {
 let [notices, setNotices] = createSignal<string[]>([], { equals: false });
 let [progress, setProgress] = createSignal(0);
 let [followCount, setFollowCount] = createSignal(0);
-let followRecords: Record<string, { uri: string; toBeDeleted: boolean }> = {};
+let followRecords: Record<
+  string,
+  { handle: string; uri: string; toBeDeleted: boolean }
+> = {};
 
 const fetchFollows = async (agent: any) => {
   const PAGE_LIMIT = 100;
@@ -101,6 +104,7 @@ const unfollowBsky = async (form: Form, preview: boolean) => {
     await fetchFollows(agent).then((follows) =>
       follows.forEach((record: any) => {
         followRecords[record.value.subject] = {
+          handle: "",
           uri: record.uri,
           toBeDeleted: false,
         };
@@ -114,6 +118,7 @@ const unfollowBsky = async (form: Form, preview: boolean) => {
       try {
         const res = await agent.getProfile({ actor: did });
         if (res.data.viewer?.blockedBy) {
+          followRecords[did].handle = res.data.handle;
           followRecords[did].toBeDeleted = true;
           updateNotices(
             `Found account you are blocked by: ${did} (${res.data.handle})`,
@@ -127,7 +132,7 @@ const unfollowBsky = async (form: Form, preview: boolean) => {
             : "https://plc.directory/" + did,
         );
 
-        const handle = await res.json().then((doc) => {
+        followRecords[did].handle = await res.json().then((doc) => {
           for (const alias of doc.alsoKnownAs) {
             if (alias.includes("at://")) {
               return alias.split("//")[1];
@@ -137,13 +142,19 @@ const unfollowBsky = async (form: Form, preview: boolean) => {
 
         if (form.deleted && e.message.includes("not found")) {
           followRecords[did].toBeDeleted = true;
-          updateNotices(`Found deleted account: ${did} (${handle})`);
+          updateNotices(
+            `Found deleted account: ${did} (${followRecords[did].handle})`,
+          );
         } else if (form.deactivated && e.message.includes("deactivated")) {
           followRecords[did].toBeDeleted = true;
-          updateNotices(`Found deactivated account: ${did} (${handle})`);
+          updateNotices(
+            `Found deactivated account: ${did} (${followRecords[did].handle})`,
+          );
         } else if (form.suspended && e.message.includes("suspended")) {
           followRecords[did].toBeDeleted = true;
-          updateNotices(`Found suspended account: ${did} (${handle})`);
+          updateNotices(
+            `Found suspended account: ${did} (${followRecords[did].handle})`,
+          );
         }
       }
       setProgress(progress() + 1);
@@ -159,7 +170,9 @@ const unfollowBsky = async (form: Form, preview: boolean) => {
     for (const did of Object.keys(followRecords)) {
       if (followRecords[did].toBeDeleted) {
         await agent.deleteFollow(followRecords[did].uri);
-        updateNotices("Unfollowed account: " + did);
+        updateNotices(
+          `Unfollowed account: ${did} (${followRecords[did].handle})`,
+        );
         setProgress(progress() + 1);
       }
     }
