@@ -141,16 +141,26 @@ const unfollowBsky = async (form: Form, preview: boolean) => {
           followRecords[did].toBeDeleted = true;
           updateNotices(`Found deactivated account: ${did} (${handle})`);
         }
+        //} else if (form.deactivated && e.message.includes("suspended")) {
+        //  followRecords[did].toBeDeleted = true;
+        //  updateNotices(`Found suspended account: ${did} (${handle})`);
+        //}
       }
       setProgress(progress() + 1);
     });
   }
 
   if (!preview) {
+    setProgress(0);
+    setFollowCount(
+      Object.values(followRecords).filter((record) => record.toBeDeleted)
+        .length,
+    );
     for (const did of Object.keys(followRecords)) {
       if (followRecords[did].toBeDeleted) {
         await agent.deleteFollow(followRecords[did].uri);
         updateNotices("Unfollowed account: " + did);
+        setProgress(progress() + 1);
       }
     }
     followRecords = {};
