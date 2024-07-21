@@ -83,6 +83,13 @@ const fetchServiceEndpoint = async (handle: string) => {
   });
 };
 
+function selectRecords(status: RepoStatus) {
+  followRecords.forEach((record, index) => {
+    if (record.status == status)
+      setFollowRecords(index, "toBeDeleted", record.toBeDeleted ? false : true);
+  });
+}
+
 const fetchHiddenAccounts = async (handle: string, password: string) => {
   const serviceURL = await fetchServiceEndpoint(handle);
 
@@ -188,6 +195,7 @@ const Records: Component = () => {
               <input
                 type="checkbox"
                 id="delete"
+                checked={record.toBeDeleted}
                 onChange={(e) =>
                   setFollowRecords(
                     index(),
@@ -196,11 +204,8 @@ const Records: Component = () => {
                   )
                 }
               />
-              <div>{record.handle}</div>
-              <Show when={record.toBeDeleted}>
-                <div>TO DELETE</div>
-              </Show>
-              <div>
+              <span>{record.handle} </span>
+              <span>
                 <Switch>
                   <Match when={record.status == RepoStatus.DELETED}>
                     Deleted
@@ -215,8 +220,8 @@ const Records: Component = () => {
                     Suspended
                   </Match>
                 </Switch>
-              </div>
-              <div>{record.did}</div>
+              </span>
+              <span> {record.did}</span>
             </div>
           </Show>
         )}
@@ -251,6 +256,29 @@ const Form: Component = () => {
       >
         Preview
       </button>
+      <div>
+        <button type="button" onclick={() => selectRecords(RepoStatus.DELETED)}>
+          Deleted
+        </button>
+        <button
+          type="button"
+          onclick={() => selectRecords(RepoStatus.DEACTIVATED)}
+        >
+          Deactivated
+        </button>
+        <button
+          type="button"
+          onclick={() => selectRecords(RepoStatus.BLOCKEDBY)}
+        >
+          Blocked By
+        </button>
+        <button
+          type="button"
+          onclick={() => selectRecords(RepoStatus.SUSPENDED)}
+        >
+          Suspended
+        </button>
+      </div>
     </div>
   );
 };
