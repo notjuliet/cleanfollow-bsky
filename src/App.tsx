@@ -102,60 +102,57 @@ const fetchHiddenAccounts = async (handle: string, password: string) => {
     return;
   }
 
-  // handle rechecks
-  if (followRecords.length == 0) {
-    await fetchFollows(agent).then((follows) =>
-      follows.forEach((record: any) => {
-        setFollowRecords(followRecords.length, {
-          did: record.value.subject,
-          handle: "",
-          uri: record.uri,
-          status: RepoStatus.ACTIVE,
-          toBeDeleted: false,
-        });
-      }),
-    );
+  await fetchFollows(agent).then((follows) =>
+    follows.forEach((record: any) => {
+      setFollowRecords(followRecords.length, {
+        did: record.value.subject,
+        handle: "",
+        uri: record.uri,
+        status: RepoStatus.ACTIVE,
+        toBeDeleted: false,
+      });
+    }),
+  );
 
-    setProgress(0);
-    setFollowCount(followRecords.length);
+  setProgress(0);
+  setFollowCount(followRecords.length);
 
-    followRecords.forEach(async (record, index) => {
-      try {
-        const res = await agent.getProfile({ actor: record.did });
-        if (res.data.viewer?.blockedBy) {
-          setFollowRecords(index, "handle", res.data.handle);
-          setFollowRecords(index, "status", RepoStatus.BLOCKEDBY);
-        }
-      } catch (e: any) {
-        const res = await fetch(
-          record.did.startsWith("did:web")
-            ? "https://" + record.did.split(":")[2] + "/.well-known/did.json"
-            : "https://plc.directory/" + record.did,
-        );
-
-        setFollowRecords(
-          index,
-          "handle",
-          await res.json().then((doc) => {
-            for (const alias of doc.alsoKnownAs) {
-              if (alias.includes("at://")) {
-                return alias.split("//")[1];
-              }
-            }
-          }),
-        );
-
-        if (e.message.includes("not found")) {
-          setFollowRecords(index, "status", RepoStatus.DELETED);
-        } else if (e.message.includes("deactivated")) {
-          setFollowRecords(index, "status", RepoStatus.DEACTIVATED);
-        } else if (e.message.includes("suspended")) {
-          setFollowRecords(index, "status", RepoStatus.SUSPENDED);
-        }
+  followRecords.forEach(async (record, index) => {
+    try {
+      const res = await agent.getProfile({ actor: record.did });
+      if (res.data.viewer?.blockedBy) {
+        setFollowRecords(index, "handle", res.data.handle);
+        setFollowRecords(index, "status", RepoStatus.BLOCKEDBY);
       }
-      setProgress(progress() + 1);
-    });
-  }
+    } catch (e: any) {
+      const res = await fetch(
+        record.did.startsWith("did:web")
+          ? "https://" + record.did.split(":")[2] + "/.well-known/did.json"
+          : "https://plc.directory/" + record.did,
+      );
+
+      setFollowRecords(
+        index,
+        "handle",
+        await res.json().then((doc) => {
+          for (const alias of doc.alsoKnownAs) {
+            if (alias.includes("at://")) {
+              return alias.split("//")[1];
+            }
+          }
+        }),
+      );
+
+      if (e.message.includes("not found")) {
+        setFollowRecords(index, "status", RepoStatus.DELETED);
+      } else if (e.message.includes("deactivated")) {
+        setFollowRecords(index, "status", RepoStatus.DEACTIVATED);
+      } else if (e.message.includes("suspended")) {
+        setFollowRecords(index, "status", RepoStatus.SUSPENDED);
+      }
+    }
+    setProgress(progress() + 1);
+  });
 
   //if (!preview) {
   //  setFollowCount(0);
