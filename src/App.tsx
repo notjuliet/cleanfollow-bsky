@@ -7,10 +7,6 @@ import { BskyAgent } from "@atproto/api";
 type Form = {
   handle: string;
   password: string;
-  blockedby: boolean;
-  deleted: boolean;
-  deactivated: boolean;
-  suspended: boolean;
 };
 
 let [notices, setNotices] = createSignal<string[]>([], { equals: false });
@@ -140,17 +136,17 @@ const unfollowBsky = async (form: Form, preview: boolean) => {
           }
         });
 
-        if (form.deleted && e.message.includes("not found")) {
+        if (e.message.includes("not found")) {
           followRecords[did].toBeDeleted = true;
           updateNotices(
             `Found deleted account: ${did} (${followRecords[did].handle})`,
           );
-        } else if (form.deactivated && e.message.includes("deactivated")) {
+        } else if (e.message.includes("deactivated")) {
           followRecords[did].toBeDeleted = true;
           updateNotices(
             `Found deactivated account: ${did} (${followRecords[did].handle})`,
           );
-        } else if (form.suspended && e.message.includes("suspended")) {
+        } else if (e.message.includes("suspended")) {
           followRecords[did].toBeDeleted = true;
           updateNotices(
             `Found suspended account: ${did} (${followRecords[did].handle})`,
@@ -197,10 +193,6 @@ const UnfollowForm: Component = () => {
   const [formStore, setFormStore] = createStore<Form>({
     handle: "",
     password: "",
-    blockedby: true,
-    deleted: true,
-    deactivated: false,
-    suspended: false,
   });
 
   return (
@@ -218,34 +210,6 @@ const UnfollowForm: Component = () => {
           placeholder="App Password"
           onInput={(e) => setFormStore("password", e.currentTarget.value)}
         />
-      </div>
-      <div>
-        <input
-          type="checkbox"
-          id="blockedby"
-          checked
-          onChange={(e) => setFormStore("blockedby", e.currentTarget.checked)}
-        />
-        <label for="blockedby">Blocked By</label>
-        <input
-          type="checkbox"
-          id="deleted"
-          onChange={(e) => setFormStore("deleted", e.currentTarget.checked)}
-          checked
-        />
-        <label for="deleted">Deleted</label>
-        <input
-          type="checkbox"
-          id="deactivated"
-          onChange={(e) => setFormStore("deactivated", e.currentTarget.checked)}
-        />
-        <label for="deactivated">Deactivated</label>
-        <input
-          type="checkbox"
-          id="suspended"
-          onChange={(e) => setFormStore("suspended", e.currentTarget.checked)}
-        />
-        <label for="suspended">Suspended</label>
       </div>
       <button type="button" onclick={() => unfollowBsky(formStore, true)}>
         Preview
