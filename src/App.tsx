@@ -4,18 +4,26 @@ import { createStore } from "solid-js/store";
 import styles from "./App.module.css";
 import { BskyAgent } from "@atproto/api";
 
-type Form = {
+enum RepoStatus {
+  ACTIVE,
+  BLOCKEDBY,
+  DELETED,
+  DEACTIVATED,
+  SUSPENDED,
+}
+
+type FollowRecord = {
+  did: string;
   handle: string;
-  password: string;
+  uri: string;
+  status: RepoStatus;
+  toBeDeleted: boolean;
 };
 
 let [notices, setNotices] = createSignal<string[]>([], { equals: false });
 let [progress, setProgress] = createSignal(0);
 let [followCount, setFollowCount] = createSignal(0);
-let followRecords: Record<
-  string,
-  { handle: string; uri: string; toBeDeleted: boolean }
-> = {};
+let [followRecords, setFollowRecords] = createStore<FollowRecord[]>([]);
 
 const fetchFollows = async (agent: any) => {
   const PAGE_LIMIT = 100;
@@ -75,10 +83,10 @@ const fetchServiceEndpoint = async (handle: string) => {
   });
 };
 
-const unfollowBsky = async (form: Form, preview: boolean) => {
+const fetchHiddenAccounts = async (handle: string, password: string) => {
   setNotices([]);
 
-  const serviceURL = await fetchServiceEndpoint(form.handle);
+  const serviceURL = await fetchServiceEndpoint(handle);
 
   const agent = new BskyAgent({
     service: serviceURL,
@@ -86,114 +94,104 @@ const unfollowBsky = async (form: Form, preview: boolean) => {
 
   try {
     await agent.login({
-      identifier: form.handle,
-      password: form.password,
+      identifier: handle,
+      password: password,
     });
   } catch (e: any) {
     updateNotices(e.message);
     return;
   }
 
-  if (Object.keys(followRecords).length == 0 || preview) {
-    if (preview) followRecords = {};
-
+  // handle rechecks
+  if (followRecords.length == 0) {
     await fetchFollows(agent).then((follows) =>
       follows.forEach((record: any) => {
-        followRecords[record.value.subject] = {
+        setFollowRecords(followRecords.length, {
+          did: record.value.subject,
           handle: "",
           uri: record.uri,
+          status: RepoStatus.ACTIVE,
           toBeDeleted: false,
-        };
+        });
       }),
     );
 
     setProgress(0);
-    setFollowCount(Object.keys(followRecords).length);
+    setFollowCount(followRecords.length);
 
-    Object.keys(followRecords).forEach(async (did) => {
+    followRecords.forEach(async (record, index) => {
       try {
-        const res = await agent.getProfile({ actor: did });
+        const res = await agent.getProfile({ actor: record.did });
         if (res.data.viewer?.blockedBy) {
-          followRecords[did].handle = res.data.handle;
-          followRecords[did].toBeDeleted = true;
-          updateNotices(
-            `Found account you are blocked by: ${did} (${res.data.handle})`,
-          );
+          setFollowRecords(index, "handle", res.data.handle);
+          setFollowRecords(index, "status", RepoStatus.BLOCKEDBY);
         }
       } catch (e: any) {
-        console.log(e.message);
         const res = await fetch(
-          did.startsWith("did:web")
-            ? "https://" + did.split(":")[2] + "/.well-known/did.json"
-            : "https://plc.directory/" + did,
+          record.did.startsWith("did:web")
+            ? "https://" + record.did.split(":")[2] + "/.well-known/did.json"
+            : "https://plc.directory/" + record.did,
         );
 
-        followRecords[did].handle = await res.json().then((doc) => {
-          for (const alias of doc.alsoKnownAs) {
-            if (alias.includes("at://")) {
-              return alias.split("//")[1];
+        setFollowRecords(
+          index,
+          "handle",
+          await res.json().then((doc) => {
+            for (const alias of doc.alsoKnownAs) {
+              if (alias.includes("at://")) {
+                return alias.split("//")[1];
+              }
             }
-          }
-        });
+          }),
+        );
 
         if (e.message.includes("not found")) {
-          followRecords[did].toBeDeleted = true;
-          updateNotices(
-            `Found deleted account: ${did} (${followRecords[did].handle})`,
-          );
+          setFollowRecords(index, "status", RepoStatus.DELETED);
         } else if (e.message.includes("deactivated")) {
-          followRecords[did].toBeDeleted = true;
-          updateNotices(
-            `Found deactivated account: ${did} (${followRecords[did].handle})`,
-          );
+          setFollowRecords(index, "status", RepoStatus.DEACTIVATED);
         } else if (e.message.includes("suspended")) {
-          followRecords[did].toBeDeleted = true;
-          updateNotices(
-            `Found suspended account: ${did} (${followRecords[did].handle})`,
-          );
+          setFollowRecords(index, "status", RepoStatus.SUSPENDED);
         }
       }
       setProgress(progress() + 1);
     });
   }
 
-  if (!preview) {
-    setFollowCount(0);
-
-    const unfollowCount = Object.values(followRecords).filter(
-      (record) => record.toBeDeleted,
-    ).length;
-
-    const writes = Object.values(followRecords)
-      .filter((record) => record.toBeDeleted)
-      .map((record) => {
-        return {
-          $type: "com.atproto.repo.applyWrites#delete",
-          collection: "app.bsky.graph.follow",
-          rkey: record.uri.split("/").pop(),
-        };
-      });
-
-    const BATCHSIZE = 200;
-    if (agent.session) {
-      for (let i = 0; i < writes.length; i += BATCHSIZE) {
-        await agent.com.atproto.repo.applyWrites({
-          repo: agent.session.did,
-          writes: writes.slice(i, i + BATCHSIZE),
-        });
-      }
-    }
-
-    setNotices([`Unfollowed ${unfollowCount} accounts.`]);
-    followRecords = {};
-  }
+  //if (!preview) {
+  //  setFollowCount(0);
+  //
+  //  const unfollowCount = Object.values(followRecords).filter(
+  //    (record) => record.toBeDeleted,
+  //  ).length;
+  //
+  //  const writes = Object.values(followRecords)
+  //    .filter((record) => record.toBeDeleted)
+  //    .map((record) => {
+  //      return {
+  //        $type: "com.atproto.repo.applyWrites#delete",
+  //        collection: "app.bsky.graph.follow",
+  //        rkey: record.uri.split("/").pop(),
+  //      };
+  //    });
+  //
+  //  const BATCHSIZE = 200;
+  //  if (agent.session) {
+  //    for (let i = 0; i < writes.length; i += BATCHSIZE) {
+  //      await agent.com.atproto.repo.applyWrites({
+  //        repo: agent.session.did,
+  //        writes: writes.slice(i, i + BATCHSIZE),
+  //      });
+  //    }
+  //  }
+  //
+  //  setNotices([`Unfollowed ${unfollowCount} accounts.`]);
+  //  followRecords = {};
+  //}
 };
 
-const UnfollowForm: Component = () => {
-  const [formStore, setFormStore] = createStore<Form>({
-    handle: "",
-    password: "",
-  });
+const Form: Component = () => {
+  const [handle, setHandle] = createSignal("");
+  const [password, setPassword] = createSignal("");
 
   return (
     <div>
@@ -201,21 +199,21 @@ const UnfollowForm: Component = () => {
         <input
           type="text"
           placeholder="Handle"
-          onInput={(e) => setFormStore("handle", e.currentTarget.value)}
+          onInput={(e) => setHandle(e.currentTarget.value)}
         />
       </div>
       <div>
         <input
           type="password"
           placeholder="App Password"
-          onInput={(e) => setFormStore("password", e.currentTarget.value)}
+          onInput={(e) => setPassword(e.currentTarget.value)}
         />
       </div>
-      <button type="button" onclick={() => unfollowBsky(formStore, true)}>
+      <button
+        type="button"
+        onclick={() => fetchHiddenAccounts(handle(), password())}
+      >
         Preview
-      </button>
-      <button type="button" onclick={() => unfollowBsky(formStore, false)}>
-        Unfollow
       </button>
     </div>
   );
@@ -226,10 +224,12 @@ const App: Component = () => {
     <div class={styles.App}>
       <h1>cleanfollow-bsky</h1>
       <div class={styles.Warning}>
-        <p>Unfollows all blocked by, deleted, and deactivated accounts</p>
+        <p>
+          Unfollows blocked by, deleted, suspended, and deactivated accounts
+        </p>
         <a href="https://github.com/notjuliet/cleanfollow-bsky">Source Code</a>
       </div>
-      <UnfollowForm />
+      <Form />
       <Show when={followCount()}>
         <div>
           Progress: {progress()}/{followCount()}
