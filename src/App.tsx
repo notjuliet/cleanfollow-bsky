@@ -31,6 +31,7 @@ type FollowRecord = {
 };
 
 let [followRecords, setFollowRecords] = createStore<FollowRecord[]>([]);
+let [notice, setNotice] = createSignal("");
 let agent: BskyAgent;
 
 const resolveHandle = async (handle: string) => {
@@ -38,15 +39,19 @@ const resolveHandle = async (handle: string) => {
     service: "https://public.api.bsky.app",
   });
 
-  const res = await agent.com.atproto.identity.resolveHandle({
-    handle: handle,
-  });
-
-  return res.data.did;
+  try {
+    const res = await agent.com.atproto.identity.resolveHandle({
+      handle: handle,
+    });
+    return res.data.did;
+  } catch (e: any) {
+    setNotice(e.message);
+  }
 };
 
 const fetchServiceEndpoint = async (handle: string) => {
   const did = await resolveHandle(handle);
+  if (!did) return;
 
   const res = await fetch(
     did.startsWith("did:web")
@@ -64,16 +69,21 @@ const fetchServiceEndpoint = async (handle: string) => {
 };
 
 const loginBsky = async (handle: string, password: string) => {
+  setNotice("");
   const serviceURL = await fetchServiceEndpoint(handle);
 
   agent = new BskyAgent({
     service: serviceURL,
   });
 
-  await agent.login({
-    identifier: handle,
-    password: password,
-  });
+  try {
+    await agent.login({
+      identifier: handle,
+      password: password,
+    });
+  } catch (e: any) {
+    setNotice(e.message);
+  }
 };
 
 const Follows: Component = () => {
@@ -268,6 +278,7 @@ const Form: Component = () => {
     setFollowRecords([]);
     setProgress(0);
     setFollowCount(0);
+    setNotice(`Unfollowed ${writes.length} accounts`);
   };
 
   return (
@@ -298,6 +309,9 @@ const Form: Component = () => {
         <button type="button" onclick={() => unfollow()}>
           Confirm
         </button>
+      </Show>
+      <Show when={notice()}>
+        <div>{notice()}</div>
       </Show>
       <Show when={followCount()}>
         <div>
