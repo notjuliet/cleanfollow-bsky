@@ -117,7 +117,7 @@ const unfollowBsky = async (form: Form, preview: boolean) => {
     Object.keys(followRecords).forEach(async (did) => {
       try {
         const res = await agent.getProfile({ actor: did });
-        if (res.data.viewer?.blockedBy) {
+        if (form.blockedby && res.data.viewer?.blockedBy) {
           followRecords[did].handle = res.data.handle;
           followRecords[did].toBeDeleted = true;
           updateNotices(
