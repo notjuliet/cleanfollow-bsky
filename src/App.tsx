@@ -188,7 +188,6 @@ const Records: Component = () => {
               <input
                 type="checkbox"
                 id="delete"
-                checked
                 onChange={(e) =>
                   setFollowRecords(
                     index(),
@@ -198,6 +197,9 @@ const Records: Component = () => {
                 }
               />
               <div>{record.handle}</div>
+              <Show when={record.toBeDeleted}>
+                <div>TO DELETE</div>
+              </Show>
               <div>
                 <Switch>
                   <Match when={record.status == RepoStatus.DELETED}>
