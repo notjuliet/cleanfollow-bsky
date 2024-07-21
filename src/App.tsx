@@ -87,14 +87,10 @@ const loginBsky = async (handle: string, password: string) => {
 };
 
 const Follows: Component = () => {
-  function selectRecords(status: RepoStatus) {
+  function selectRecords(status: RepoStatus, toBeDeleted: boolean) {
     followRecords.forEach((record, index) => {
       if (record.status == status)
-        setFollowRecords(
-          index,
-          "toBeDeleted",
-          record.toBeDeleted ? false : true,
-        );
+        setFollowRecords(index, "toBeDeleted", toBeDeleted);
     });
   }
 
@@ -102,30 +98,38 @@ const Follows: Component = () => {
     <div>
       <Show when={followRecords.length}>
         <div>
-          <button
-            type="button"
-            onclick={() => selectRecords(RepoStatus.DELETED)}
-          >
-            Deleted
-          </button>
-          <button
-            type="button"
-            onclick={() => selectRecords(RepoStatus.DEACTIVATED)}
-          >
-            Deactivated
-          </button>
-          <button
-            type="button"
-            onclick={() => selectRecords(RepoStatus.BLOCKEDBY)}
-          >
-            Blocked By
-          </button>
-          <button
-            type="button"
-            onclick={() => selectRecords(RepoStatus.SUSPENDED)}
-          >
-            Suspended
-          </button>
+          <input
+            type="checkbox"
+            id="deleted"
+            onChange={(e) =>
+              selectRecords(RepoStatus.DELETED, e.currentTarget.checked)
+            }
+          />
+          <label for="deleted">Deleted</label>
+          <input
+            type="checkbox"
+            id="deactivated"
+            onChange={(e) =>
+              selectRecords(RepoStatus.DEACTIVATED, e.currentTarget.checked)
+            }
+          />
+          <label for="deactivated">Deactivated</label>
+          <input
+            type="checkbox"
+            id="suspended"
+            onChange={(e) =>
+              selectRecords(RepoStatus.SUSPENDED, e.currentTarget.checked)
+            }
+          />
+          <label for="suspended">Suspended</label>
+          <input
+            type="checkbox"
+            id="blockedby"
+            onChange={(e) =>
+              selectRecords(RepoStatus.BLOCKEDBY, e.currentTarget.checked)
+            }
+          />
+          <label for="blockedby">Blocked By</label>
         </div>
       </Show>
       <For each={followRecords}>
@@ -133,7 +137,7 @@ const Follows: Component = () => {
           <div>
             <input
               type="checkbox"
-              id="delete"
+              id={"record" + index()}
               checked={record.toBeDeleted}
               onChange={(e) =>
                 setFollowRecords(
@@ -143,24 +147,26 @@ const Follows: Component = () => {
                 )
               }
             />
-            <span>{record.handle} </span>
-            <span>
-              <Switch>
-                <Match when={record.status == RepoStatus.DELETED}>
-                  Deleted
-                </Match>
-                <Match when={record.status == RepoStatus.DEACTIVATED}>
-                  Deactivated
-                </Match>
-                <Match when={record.status == RepoStatus.BLOCKEDBY}>
-                  Blocked by
-                </Match>
-                <Match when={record.status == RepoStatus.SUSPENDED}>
-                  Suspended
-                </Match>
-              </Switch>
-            </span>
-            <span> {record.did}</span>
+            <label for={"record" + index()}>
+              <span>{record.handle} </span>
+              <span>
+                <Switch>
+                  <Match when={record.status == RepoStatus.DELETED}>
+                    Deleted
+                  </Match>
+                  <Match when={record.status == RepoStatus.DEACTIVATED}>
+                    Deactivated
+                  </Match>
+                  <Match when={record.status == RepoStatus.BLOCKEDBY}>
+                    Blocked by
+                  </Match>
+                  <Match when={record.status == RepoStatus.SUSPENDED}>
+                    Suspended
+                  </Match>
+                </Switch>
+              </span>
+              <span> {record.did}</span>
+            </label>
           </div>
         )}
       </For>
