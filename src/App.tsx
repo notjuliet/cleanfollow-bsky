@@ -1,4 +1,11 @@
-import { createSignal, For, Show, type Component } from "solid-js";
+import {
+  createSignal,
+  For,
+  Switch,
+  Match,
+  Show,
+  type Component,
+} from "solid-js";
 import { createStore } from "solid-js/store";
 
 import styles from "./App.module.css";
@@ -20,10 +27,9 @@ type FollowRecord = {
   toBeDeleted: boolean;
 };
 
-let [notices, setNotices] = createSignal<string[]>([], { equals: false });
+let [followRecords, setFollowRecords] = createStore<FollowRecord[]>([]);
 let [progress, setProgress] = createSignal(0);
 let [followCount, setFollowCount] = createSignal(0);
-let [followRecords, setFollowRecords] = createStore<FollowRecord[]>([]);
 
 const fetchFollows = async (agent: any) => {
   const PAGE_LIMIT = 100;
@@ -46,12 +52,6 @@ const fetchFollows = async (agent: any) => {
 
   return follows;
 };
-
-function updateNotices(newNotice: string) {
-  let tmp: string[] = notices();
-  tmp.push(newNotice);
-  setNotices(tmp);
-}
 
 const resolveHandle = async (handle: string) => {
   const agent = new BskyAgent({
@@ -84,8 +84,6 @@ const fetchServiceEndpoint = async (handle: string) => {
 };
 
 const fetchHiddenAccounts = async (handle: string, password: string) => {
-  setNotices([]);
-
   const serviceURL = await fetchServiceEndpoint(handle);
 
   const agent = new BskyAgent({
@@ -98,7 +96,6 @@ const fetchHiddenAccounts = async (handle: string, password: string) => {
       password: password,
     });
   } catch (e: any) {
-    updateNotices(e.message);
     return;
   }
 
@@ -154,14 +151,13 @@ const fetchHiddenAccounts = async (handle: string, password: string) => {
     setProgress(progress() + 1);
   });
 
-  //if (!preview) {
   //  setFollowCount(0);
   //
-  //  const unfollowCount = Object.values(followRecords).filter(
+  //  const unfollowCount = followRecords.filter(
   //    (record) => record.toBeDeleted,
   //  ).length;
   //
-  //  const writes = Object.values(followRecords)
+  //  const writes = followRecords
   //    .filter((record) => record.toBeDeleted)
   //    .map((record) => {
   //      return {
@@ -180,10 +176,51 @@ const fetchHiddenAccounts = async (handle: string, password: string) => {
   //      });
   //    }
   //  }
-  //
-  //  setNotices([`Unfollowed ${unfollowCount} accounts.`]);
-  //  followRecords = {};
-  //}
+};
+
+const Records: Component = () => {
+  return (
+    <div>
+      <For each={followRecords}>
+        {(record, index) => (
+          <Show when={record.status != RepoStatus.ACTIVE}>
+            <div>
+              <input
+                type="checkbox"
+                id="delete"
+                checked
+                onChange={(e) =>
+                  setFollowRecords(
+                    index(),
+                    "toBeDeleted",
+                    e.currentTarget.checked,
+                  )
+                }
+              />
+              <div>{record.handle}</div>
+              <div>
+                <Switch>
+                  <Match when={record.status == RepoStatus.DELETED}>
+                    Deleted
+                  </Match>
+                  <Match when={record.status == RepoStatus.DEACTIVATED}>
+                    Deactivated
+                  </Match>
+                  <Match when={record.status == RepoStatus.BLOCKEDBY}>
+                    Blocked by
+                  </Match>
+                  <Match when={record.status == RepoStatus.SUSPENDED}>
+                    Suspended
+                  </Match>
+                </Switch>
+              </div>
+              <div>{record.did}</div>
+            </div>
+          </Show>
+        )}
+      </For>
+    </div>
+  );
 };
 
 const Form: Component = () => {
@@ -233,16 +270,7 @@ const App: Component = () => {
         </div>
         <br />
       </Show>
-      <div>
-        <For each={notices()}>
-          {(item) => (
-            <span>
-              {item}
-              <br />
-            </span>
-          )}
-        </For>
-      </div>
+      <Records />
     </div>
   );
 };
