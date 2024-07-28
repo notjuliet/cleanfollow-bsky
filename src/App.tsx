@@ -377,7 +377,7 @@ const App: Component = () => {
         <div>
           <a
             class="text-blue-600 hover:underline"
-            href="https://bsky.app/profile/juliet.renahlee.com"
+            href="https://bsky.app/profile/adorable.mom"
           >
             Bluesky
           </a>
