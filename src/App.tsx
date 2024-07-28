@@ -373,13 +373,19 @@ const App: Component = () => {
           >
             Source Code
           </a>
-        </div>
-        <div>
+          <span> | </span>
           <a
             class="text-blue-600 hover:underline"
             href="https://bsky.app/profile/adorable.mom"
           >
             Bluesky
+          </a>
+          <span> | </span>
+          <a
+            class="text-blue-600 hover:underline"
+            href="https://mary-ext.codeberg.page/bluesky-quiet-posters/"
+          >
+            Quiet Posters
           </a>
         </div>
       </div>
