@@ -228,6 +228,7 @@ const Form: Component = () => {
     await loginBsky(handle, password);
     if (!agent) return;
     setNotice("");
+    setProgress(0);
 
     await fetchFollows(agent).then((follows) =>
       follows.forEach(async (record: any) => {
