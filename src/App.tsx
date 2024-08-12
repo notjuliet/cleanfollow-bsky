@@ -209,7 +209,7 @@ const Form: Component = () => {
       const PAGE_LIMIT = 100;
       const fetchPage = async (cursor?: any) => {
         return await agent.com.atproto.repo.listRecords({
-          repo: agent.did ?? "",
+          repo: agent.did!,
           collection: "app.bsky.graph.follow",
           limit: PAGE_LIMIT,
           cursor: cursor,
@@ -257,14 +257,13 @@ const Form: Component = () => {
               : "https://plc.directory/" + record.value.subject,
           );
 
-          let status;
-          if (e.message.includes("not found")) {
-            status = RepoStatus.DELETED;
-          } else if (e.message.includes("deactivated")) {
-            status = RepoStatus.DEACTIVATED;
-          } else if (e.message.includes("suspended")) {
-            status = RepoStatus.SUSPENDED;
-          }
+          const status = e.message.includes("not found")
+            ? RepoStatus.DELETED
+            : e.message.includes("deactivated")
+              ? RepoStatus.DEACTIVATED
+              : e.message.includes("suspended")
+                ? RepoStatus.SUSPENDED
+                : undefined;
 
           const handle = await res.json().then((doc) => {
             for (const alias of doc.alsoKnownAs) {
@@ -299,13 +298,11 @@ const Form: Component = () => {
       });
 
     const BATCHSIZE = 200;
-    if (agent.did) {
-      for (let i = 0; i < writes.length; i += BATCHSIZE) {
-        await agent.com.atproto.repo.applyWrites({
-          repo: agent.did,
-          writes: writes.slice(i, i + BATCHSIZE),
-        });
-      }
+    for (let i = 0; i < writes.length; i += BATCHSIZE) {
+      await agent.com.atproto.repo.applyWrites({
+        repo: agent.did!,
+        writes: writes.slice(i, i + BATCHSIZE),
+      });
     }
 
     setFollowRecords([]);
