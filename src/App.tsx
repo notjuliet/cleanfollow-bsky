@@ -8,7 +8,7 @@ import {
 } from "solid-js";
 import { createStore } from "solid-js/store";
 
-import { BskyAgent } from "@atproto/api";
+import { Agent, AtpAgent } from "@atproto/api";
 
 enum RepoStatus {
   BLOCKEDBY,
@@ -27,10 +27,9 @@ type FollowRecord = {
 
 let [followRecords, setFollowRecords] = createStore<FollowRecord[]>([]);
 let [notice, setNotice] = createSignal("");
-let agent: BskyAgent;
 
 const resolveHandle = async (handle: string) => {
-  const agent = new BskyAgent({
+  const agent = new AtpAgent({
     service: "https://public.api.bsky.app",
   });
 
@@ -66,7 +65,7 @@ const fetchServiceEndpoint = async (handle: string) => {
 const loginBsky = async (handle: string, password: string) => {
   const serviceURL = await fetchServiceEndpoint(handle);
 
-  agent = new BskyAgent({
+  const agent = new AtpAgent({
     service: serviceURL,
   });
 
@@ -78,6 +77,8 @@ const loginBsky = async (handle: string, password: string) => {
   } catch (e: any) {
     setNotice(e.message);
   }
+
+  return agent;
 };
 
 const Follows: Component = () => {
@@ -201,12 +202,14 @@ const Form: Component = () => {
   const [progress, setProgress] = createSignal(0);
   const [followCount, setFollowCount] = createSignal(0);
 
+  let agent: Agent;
+
   const fetchHiddenAccounts = async (handle: string, password: string) => {
-    const fetchFollows = async (agent: any) => {
+    const fetchFollows = async (agent: Agent) => {
       const PAGE_LIMIT = 100;
       const fetchPage = async (cursor?: any) => {
         return await agent.com.atproto.repo.listRecords({
-          repo: agent.session.did,
+          repo: agent.did ?? "",
           collection: "app.bsky.graph.follow",
           limit: PAGE_LIMIT,
           cursor: cursor,
@@ -225,7 +228,7 @@ const Form: Component = () => {
     };
 
     setNotice("Logging in...");
-    await loginBsky(handle, password);
+    agent = await loginBsky(handle, password);
     if (!agent) return;
     setNotice("");
     setProgress(0);
@@ -296,10 +299,10 @@ const Form: Component = () => {
       });
 
     const BATCHSIZE = 200;
-    if (agent.session) {
+    if (agent.did) {
       for (let i = 0; i < writes.length; i += BATCHSIZE) {
         await agent.com.atproto.repo.applyWrites({
-          repo: agent.session.did,
+          repo: agent.did,
           writes: writes.slice(i, i + BATCHSIZE),
         });
       }
