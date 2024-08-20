@@ -60,7 +60,6 @@ const loginBsky = async (handle: string) => {
   try {
     await client.signIn(handle, {
       state: "some value needed later",
-      prompt: "none",
       signal: new AbortController().signal,
     });
   } catch (err) {
