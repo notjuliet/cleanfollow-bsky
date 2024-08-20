@@ -34,6 +34,10 @@ const client = await BrowserOAuthClient.load({
   handleResolver: "https://bsky.social",
 });
 
+client.addEventListener("deleted", () => {
+  setLoginState(false);
+});
+
 let appAgent: Agent;
 let userHandle: string;
 
@@ -57,7 +61,6 @@ const loginBsky = async (handle: string) => {
 };
 
 const logoutBsky = async () => {
-  setLoginState(false);
   if (result) await client.revoke(result.agent.sub);
 };
 
