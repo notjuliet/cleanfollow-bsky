@@ -1,8 +1,8 @@
 {
-  "client_id": "https://oauth.cleanfollow-bsky.pages.dev/client-metadata.json",
+  "client_id": "https://cleanfollow-bsky.pages.dev/client-metadata.json",
   "client_name": "cleanfollow-bsky",
-  "client_uri": "https://oauth.cleanfollow-bsky.pages.dev",
-  "redirect_uris": ["https://oauth.cleanfollow-bsky.pages.dev/"],
+  "client_uri": "https://cleanfollow-bsky.pages.dev",
+  "redirect_uris": ["https://cleanfollow-bsky.pages.dev/"],
   "scope": "profile email offline_access",
   "grant_types": ["authorization_code", "refresh_token"],
   "response_types": ["code"],
