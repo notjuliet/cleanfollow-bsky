@@ -8,7 +8,8 @@ import {
 } from "solid-js";
 import { createStore } from "solid-js/store";
 
-import { Agent, AtpAgent } from "@atproto/api";
+import { Agent } from "@atproto/api";
+import { BrowserOAuthClient } from "@atproto/oauth-client-browser";
 
 enum RepoStatus {
   BLOCKEDBY,
@@ -26,59 +27,52 @@ type FollowRecord = {
 };
 
 let [followRecords, setFollowRecords] = createStore<FollowRecord[]>([]);
-let [notice, setNotice] = createSignal("");
+let [loginState, setLoginState] = createSignal<boolean>();
 
-const resolveHandle = async (handle: string) => {
-  const agent = new AtpAgent({
-    service: "https://public.api.bsky.app",
-  });
+const client = await BrowserOAuthClient.load({
+  clientId: "https://oauth.cleanfollow-bsky.pages.dev/client-metadata.json",
+  handleResolver: "https://bsky.social",
+});
 
+let appAgent: Agent;
+let userHandle: string;
+
+const result: undefined | { agent: OAuthAgent; state?: string } = await client
+  .init()
+  .catch(() => {});
+
+if (result) {
+  const { agent, state } = result;
+  appAgent = agent;
+  setLoginState(true);
+  if (state != null) {
+    console.log(
+      `${agent.sub} was successfully authenticated (state: ${state})`,
+    );
+  } else {
+    console.log(`${agent.sub} was restored (last active session)`);
+  }
+  const res = await appAgent.getProfile({ actor: appAgent.did! });
+  userHandle = res.data.handle;
+}
+
+const loginBsky = async (handle: string) => {
   try {
-    const res = await agent.com.atproto.identity.resolveHandle({
-      handle: handle,
+    await client.signIn(handle, {
+      state: "some value needed later",
+      signal: new AbortController().signal,
     });
-    return res.data.did;
-  } catch (e: any) {
-    setNotice(e.message);
+  } catch (err) {
+    console.log(
+      'The user aborted the authorization process by navigating "back"',
+    );
   }
 };
 
-const fetchServiceEndpoint = async (handle: string) => {
-  const did = await resolveHandle(handle);
-  if (!did) return;
-
-  const res = await fetch(
-    did.startsWith("did:web")
-      ? "https://" + did.split(":")[2] + "/.well-known/did.json"
-      : "https://plc.directory/" + did,
-  );
-
-  return await res.json().then((doc) => {
-    for (const service of doc.service) {
-      if (service.id.includes("#atproto_pds")) {
-        return service.serviceEndpoint;
-      }
-    }
-  });
-};
-
-const loginBsky = async (handle: string, password: string) => {
-  const serviceURL = await fetchServiceEndpoint(handle);
-
-  const agent = new AtpAgent({
-    service: serviceURL,
-  });
-
-  try {
-    await agent.login({
-      identifier: handle,
-      password: password,
-    });
-  } catch (e: any) {
-    setNotice(e.message);
-  }
-
-  return agent;
+const logoutBsky = async () => {
+  const agent = result;
+  setLoginState(false);
+  if (agent) await client.revoke(agent.sub);
 };
 
 const Follows: Component = () => {
@@ -197,19 +191,17 @@ const Follows: Component = () => {
 };
 
 const Form: Component = () => {
-  const [handle, setHandle] = createSignal("");
-  const [password, setPassword] = createSignal("");
+  const [loginInput, setLoginInput] = createSignal("");
   const [progress, setProgress] = createSignal(0);
   const [followCount, setFollowCount] = createSignal(0);
+  const [notice, setNotice] = createSignal("");
 
-  let agent: Agent;
-
-  const fetchHiddenAccounts = async (handle: string, password: string) => {
-    const fetchFollows = async (agent: Agent) => {
+  const fetchHiddenAccounts = async () => {
+    const fetchFollows = async () => {
       const PAGE_LIMIT = 100;
       const fetchPage = async (cursor?: any) => {
-        return await agent.com.atproto.repo.listRecords({
-          repo: agent.did!,
+        return await appAgent.com.atproto.repo.listRecords({
+          repo: appAgent.did!,
           collection: "app.bsky.graph.follow",
           limit: PAGE_LIMIT,
           cursor: cursor,
@@ -227,18 +219,17 @@ const Form: Component = () => {
       return follows;
     };
 
-    setNotice("Logging in...");
-    agent = await loginBsky(handle, password);
-    if (!agent) return;
     setNotice("");
     setProgress(0);
 
-    await fetchFollows(agent).then((follows) =>
+    await fetchFollows().then((follows) =>
       follows.forEach(async (record: any) => {
         setFollowCount(follows.length);
 
         try {
-          const res = await agent.getProfile({ actor: record.value.subject });
+          const res = await appAgent.getProfile({
+            actor: record.value.subject,
+          });
           if (res.data.viewer?.blockedBy) {
             setFollowRecords(followRecords.length, {
               did: record.value.subject,
@@ -299,8 +290,8 @@ const Form: Component = () => {
 
     const BATCHSIZE = 200;
     for (let i = 0; i < writes.length; i += BATCHSIZE) {
-      await agent.com.atproto.repo.applyWrites({
-        repo: agent.did!,
+      await appAgent.com.atproto.repo.applyWrites({
+        repo: appAgent.did!,
         writes: writes.slice(i, i + BATCHSIZE),
       });
     }
@@ -314,23 +305,35 @@ const Form: Component = () => {
   return (
     <div class="flex flex-col items-center">
       <div class="flex flex-col items-center">
-        <input
-          type="text"
-          placeholder="Handle"
-          class="rounded-md py-1 pl-2 pr-2 mb-3 ring-1 ring-inset ring-gray-300"
-          onInput={(e) => setHandle(e.currentTarget.value)}
-        />
-        <input
-          type="password"
-          placeholder="App Password"
-          class="rounded-md py-1 pl-2 pr-2 mb-5 ring-1 ring-inset ring-gray-300"
-          onInput={(e) => setPassword(e.currentTarget.value)}
-        />
-        <div>
+        <Show when={!loginState()}>
+          <label for="handle">Handle:</label>
+          <input
+            type="text"
+            id="handle"
+            placeholder="user.bsky.social"
+            class="rounded-md mt-1 py-1 pl-2 pr-2 mb-3 ring-1 ring-inset ring-gray-300"
+            onInput={(e) => setLoginInput(e.currentTarget.value)}
+          />
+          <button
+            type="button"
+            onclick={() => loginBsky(loginInput())}
+            class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+          >
+            Login
+          </button>
+        </Show>
+        <Show when={loginState()}>
+          <div class="mb-5">
+            Logged in as {userHandle} (
+            <a href="" class="text-red-600" onclick={() => logoutBsky()}>
+              Logout
+            </a>
+            )
+          </div>
           <Show when={!followRecords.length}>
             <button
               type="button"
-              onclick={() => fetchHiddenAccounts(handle(), password())}
+              onclick={() => fetchHiddenAccounts()}
               class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
             >
               Preview
@@ -340,17 +343,17 @@ const Form: Component = () => {
             <button
               type="button"
               onclick={() => unfollow()}
-              class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
+              class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
             >
               Confirm
             </button>
           </Show>
-        </div>
+        </Show>
       </div>
       <Show when={notice()}>
         <div class="m-3">{notice()}</div>
       </Show>
-      <Show when={followCount()}>
+      <Show when={loginState() && followCount()}>
         <div class="m-3">
           Progress: {progress()}/{followCount()}
         </div>
@@ -363,7 +366,7 @@ const App: Component = () => {
   return (
     <div class="flex flex-col items-center m-5">
       <h1 class="text-2xl mb-5">cleanfollow-bsky</h1>
-      <div class="mb-5 text-center">
+      <div class="mb-3 text-center">
         <p>
           Unfollows blocked by, deleted, suspended, and deactivated accounts
         </p>
@@ -391,7 +394,9 @@ const App: Component = () => {
         </div>
       </div>
       <Form />
-      <Follows />
+      <Show when={loginState()}>
+        <Follows />
+      </Show>
     </div>
   );
 };
