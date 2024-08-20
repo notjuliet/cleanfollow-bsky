@@ -9,7 +9,7 @@ import {
 import { createStore } from "solid-js/store";
 
 import { Agent } from "@atproto/api";
-import { BrowserOAuthClient } from "@atproto/oauth-client-browser";
+import { BrowserOAuthClient, OAuthAgent } from "@atproto/oauth-client-browser";
 
 enum RepoStatus {
   BLOCKEDBY,
@@ -42,16 +42,8 @@ const result: undefined | { agent: OAuthAgent; state?: string } = await client
   .catch(() => {});
 
 if (result) {
-  const { agent, state } = result;
-  appAgent = agent;
+  appAgent = result.agent;
   setLoginState(true);
-  if (state != null) {
-    console.log(
-      `${agent.sub} was successfully authenticated (state: ${state})`,
-    );
-  } else {
-    console.log(`${agent.sub} was restored (last active session)`);
-  }
   const res = await appAgent.getProfile({ actor: appAgent.did! });
   userHandle = res.data.handle;
 }
@@ -62,17 +54,12 @@ const loginBsky = async (handle: string) => {
       state: "some value needed later",
       signal: new AbortController().signal,
     });
-  } catch (err) {
-    console.log(
-      'The user aborted the authorization process by navigating "back"',
-    );
-  }
+  } catch (err) {}
 };
 
 const logoutBsky = async () => {
-  const agent = result;
   setLoginState(false);
-  if (agent) await client.revoke(agent.sub);
+  if (result) await client.revoke(result.agent.sub);
 };
 
 const Follows: Component = () => {
