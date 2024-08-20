@@ -30,7 +30,7 @@ let [followRecords, setFollowRecords] = createStore<FollowRecord[]>([]);
 let [loginState, setLoginState] = createSignal<boolean>();
 
 const client = await BrowserOAuthClient.load({
-  clientId: "https://oauth.cleanfollow-bsky.pages.dev/client-metadata.json",
+  clientId: "https://cleanfollow-bsky.pages.dev/client-metadata.json",
   handleResolver: "https://bsky.social",
 });
 
