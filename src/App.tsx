@@ -16,6 +16,7 @@ enum RepoStatus {
   DELETED,
   DEACTIVATED,
   SUSPENDED,
+  YOURSELF,
 }
 
 type FollowRecord = {
@@ -167,6 +168,9 @@ const Follows: Component = () => {
                       <Match when={record.status == RepoStatus.SUSPENDED}>
                         Suspended
                       </Match>
+                      <Match when={record.status == RepoStatus.YOURSELF}>
+                        Literally Yourself
+                      </Match>
                     </Switch>
                   </div>
                 </label>
@@ -225,6 +229,14 @@ const Form: Component = () => {
               handle: res.data.handle,
               uri: record.uri,
               status: RepoStatus.BLOCKEDBY,
+              toBeDeleted: false,
+            });
+          } else if (res.data.did.includes(appAgent.did!)) {
+            setFollowRecords(followRecords.length, {
+              did: record.value.subject,
+              handle: res.data.handle,
+              uri: record.uri,
+              status: RepoStatus.YOURSELF,
               toBeDeleted: false,
             });
           }
