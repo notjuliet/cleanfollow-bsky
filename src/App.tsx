@@ -32,7 +32,7 @@ let [loginState, setLoginState] = createSignal<boolean>();
 
 const client = await BrowserOAuthClient.load({
   clientId: "https://cleanfollow-bsky.pages.dev/client-metadata.json",
-  handleResolver: "https://app.bsky.app",
+  handleResolver: "https://bsky.social",
 });
 
 client.addEventListener("deleted", () => {
