@@ -265,13 +265,15 @@ const Form: Component = () => {
             }
           });
 
-          setFollowRecords(followRecords.length, {
-            did: record.value.subject,
-            handle: handle,
-            uri: record.uri,
-            status: status,
-            toBeDeleted: false,
-          });
+          if (status !== undefined) {
+            setFollowRecords(followRecords.length, {
+              did: record.value.subject,
+              handle: handle,
+              uri: record.uri,
+              status: status,
+              toBeDeleted: false,
+            });
+          }
         }
         setProgress(progress() + 1);
       }),
