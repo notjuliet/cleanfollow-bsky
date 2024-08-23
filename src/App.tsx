@@ -12,12 +12,12 @@ import { Agent } from "@atproto/api";
 import { BrowserOAuthClient, OAuthAgent } from "@atproto/oauth-client-browser";
 
 enum RepoStatus {
-  BLOCKEDBY,
-  BLOCKING,
-  DELETED,
-  DEACTIVATED,
-  SUSPENDED,
-  YOURSELF,
+  BLOCKEDBY = 1 << 0,
+  BLOCKING = 1 << 1,
+  DELETED = 1 << 2,
+  DEACTIVATED = 1 << 3,
+  SUSPENDED = 1 << 4,
+  YOURSELF = 1 << 5,
 }
 
 type FollowRecord = {
@@ -69,7 +69,7 @@ const logoutBsky = async () => {
 const Follows: Component = () => {
   function selectRecords(status: RepoStatus, toBeDeleted: boolean) {
     followRecords.forEach((record, index) => {
-      if (record.status == status)
+      if (record.status & status)
         setFollowRecords(index, "toBeDeleted", toBeDeleted);
     });
   }
@@ -170,22 +170,30 @@ const Follows: Component = () => {
                   <div> {record.did} </div>
                   <div>
                     <Switch>
-                      <Match when={record.status == RepoStatus.DELETED}>
+                      <Match
+                        when={
+                          record.status &
+                          (RepoStatus.BLOCKEDBY | RepoStatus.BLOCKING)
+                        }
+                      >
+                        Mutual Block
+                      </Match>
+                      <Match when={record.status & RepoStatus.DELETED}>
                         Deleted
                       </Match>
-                      <Match when={record.status == RepoStatus.DEACTIVATED}>
+                      <Match when={record.status & RepoStatus.DEACTIVATED}>
                         Deactivated
                       </Match>
-                      <Match when={record.status == RepoStatus.BLOCKEDBY}>
+                      <Match when={record.status & RepoStatus.BLOCKEDBY}>
                         Blocked by
                       </Match>
-                      <Match when={record.status == RepoStatus.BLOCKING}>
+                      <Match when={record.status & RepoStatus.BLOCKING}>
                         Blocking
                       </Match>
-                      <Match when={record.status == RepoStatus.SUSPENDED}>
+                      <Match when={record.status & RepoStatus.SUSPENDED}>
                         Suspended
                       </Match>
-                      <Match when={record.status == RepoStatus.YOURSELF}>
+                      <Match when={record.status & RepoStatus.YOURSELF}>
                         Literally Yourself
                       </Match>
                     </Switch>
@@ -241,11 +249,15 @@ const Form: Component = () => {
             actor: record.value.subject,
           });
           if (res.data.viewer?.blockedBy) {
+            const status =
+              res.data.viewer?.blocking || res.data.viewer?.blockingByList
+                ? RepoStatus.BLOCKEDBY | RepoStatus.BLOCKING
+                : RepoStatus.BLOCKEDBY;
             setFollowRecords(followRecords.length, {
               did: record.value.subject,
               handle: res.data.handle,
               uri: record.uri,
-              status: RepoStatus.BLOCKEDBY,
+              status: status,
               toBeDeleted: false,
             });
           } else if (res.data.did.includes(appAgent.did!)) {
