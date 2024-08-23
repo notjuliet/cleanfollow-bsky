@@ -398,7 +398,7 @@ const App: Component = () => {
     <div class="flex flex-col items-center m-5">
       <h1 class="text-2xl mb-5">cleanfollow-bsky</h1>
       <div class="mb-3 text-center">
-        <p>Unfollows blocked, deleted, suspended, and deactivated accounts</p>
+        <p>Unfollow blocked, deleted, suspended, and deactivated accounts</p>
         <div>
           <a
             class="text-blue-600 hover:underline"
