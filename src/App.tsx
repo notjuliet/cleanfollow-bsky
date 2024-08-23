@@ -172,28 +172,28 @@ const Follows: Component = () => {
                     <Switch>
                       <Match
                         when={
-                          record.status &
-                          (RepoStatus.BLOCKEDBY & RepoStatus.BLOCKING)
+                          record.status ==
+                          (RepoStatus.BLOCKEDBY | RepoStatus.BLOCKING)
                         }
                       >
                         Mutual Block
                       </Match>
-                      <Match when={record.status & RepoStatus.DELETED}>
+                      <Match when={record.status == RepoStatus.DELETED}>
                         Deleted
                       </Match>
-                      <Match when={record.status & RepoStatus.DEACTIVATED}>
+                      <Match when={record.status == RepoStatus.DEACTIVATED}>
                         Deactivated
                       </Match>
-                      <Match when={record.status & RepoStatus.BLOCKEDBY}>
+                      <Match when={record.status == RepoStatus.BLOCKEDBY}>
                         Blocked by
                       </Match>
-                      <Match when={record.status & RepoStatus.BLOCKING}>
+                      <Match when={record.status == RepoStatus.BLOCKING}>
                         Blocking
                       </Match>
-                      <Match when={record.status & RepoStatus.SUSPENDED}>
+                      <Match when={record.status == RepoStatus.SUSPENDED}>
                         Suspended
                       </Match>
-                      <Match when={record.status & RepoStatus.YOURSELF}>
+                      <Match when={record.status == RepoStatus.YOURSELF}>
                         Literally Yourself
                       </Match>
                     </Switch>
