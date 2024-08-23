@@ -173,7 +173,7 @@ const Follows: Component = () => {
                       <Match
                         when={
                           record.status &
-                          (RepoStatus.BLOCKEDBY | RepoStatus.BLOCKING)
+                          (RepoStatus.BLOCKEDBY & RepoStatus.BLOCKING)
                         }
                       >
                         Mutual Block
