@@ -13,6 +13,7 @@ import { BrowserOAuthClient, OAuthAgent } from "@atproto/oauth-client-browser";
 
 enum RepoStatus {
   BLOCKEDBY,
+  BLOCKING,
   DELETED,
   DEACTIVATED,
   SUSPENDED,
@@ -129,6 +130,19 @@ const Follows: Component = () => {
               Blocked By
             </label>
           </div>
+          <div class="flex h-6 items-center">
+            <input
+              type="checkbox"
+              id="blocking"
+              class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
+              onChange={(e) =>
+                selectRecords(RepoStatus.BLOCKING, e.currentTarget.checked)
+              }
+            />
+            <label for="blocking" class="ml-2">
+              Blocking
+            </label>
+          </div>
         </div>
       </Show>
       <div class="mt-5">
@@ -164,6 +178,9 @@ const Follows: Component = () => {
                       </Match>
                       <Match when={record.status == RepoStatus.BLOCKEDBY}>
                         Blocked by
+                      </Match>
+                      <Match when={record.status == RepoStatus.BLOCKING}>
+                        Blocking
                       </Match>
                       <Match when={record.status == RepoStatus.SUSPENDED}>
                         Suspended
@@ -237,6 +254,17 @@ const Form: Component = () => {
               handle: res.data.handle,
               uri: record.uri,
               status: RepoStatus.YOURSELF,
+              toBeDeleted: false,
+            });
+          } else if (
+            res.data.viewer?.blocking ||
+            res.data.viewer?.blockingByList
+          ) {
+            setFollowRecords(followRecords.length, {
+              did: record.value.subject,
+              handle: res.data.handle,
+              uri: record.uri,
+              status: RepoStatus.BLOCKING,
               toBeDeleted: false,
             });
           }
@@ -370,9 +398,7 @@ const App: Component = () => {
     <div class="flex flex-col items-center m-5">
       <h1 class="text-2xl mb-5">cleanfollow-bsky</h1>
       <div class="mb-3 text-center">
-        <p>
-          Unfollows blocked by, deleted, suspended, and deactivated accounts
-        </p>
+        <p>Unfollows blocked, deleted, suspended, and deactivated accounts</p>
         <div>
           <a
             class="text-blue-600 hover:underline"
