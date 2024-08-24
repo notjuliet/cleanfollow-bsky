@@ -86,7 +86,7 @@ const Follows: Component = () => {
             <input
               type="checkbox"
               id="deleted"
-              class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
+              class="h-4 w-4 rounded border-gray-400 text-indigo-600 focus:ring-indigo-600"
               onChange={(e) =>
                 selectRecords(RepoStatus.DELETED, e.currentTarget.checked)
               }
@@ -99,7 +99,7 @@ const Follows: Component = () => {
             <input
               type="checkbox"
               id="deactivated"
-              class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
+              class="h-4 w-4 rounded border-gray-400 text-indigo-600 focus:ring-indigo-600"
               onChange={(e) =>
                 selectRecords(RepoStatus.DEACTIVATED, e.currentTarget.checked)
               }
@@ -112,7 +112,7 @@ const Follows: Component = () => {
             <input
               type="checkbox"
               id="suspended"
-              class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
+              class="h-4 w-4 rounded border-gray-400 text-indigo-600 focus:ring-indigo-600"
               onChange={(e) =>
                 selectRecords(RepoStatus.SUSPENDED, e.currentTarget.checked)
               }
@@ -125,7 +125,7 @@ const Follows: Component = () => {
             <input
               type="checkbox"
               id="blockedby"
-              class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
+              class="h-4 w-4 rounded border-gray-400 text-indigo-600 focus:ring-indigo-600"
               onChange={(e) =>
                 selectRecords(RepoStatus.BLOCKEDBY, e.currentTarget.checked)
               }
@@ -138,7 +138,7 @@ const Follows: Component = () => {
             <input
               type="checkbox"
               id="blocking"
-              class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
+              class="h-4 w-4 rounded border-gray-400 text-indigo-600 focus:ring-indigo-600"
               onChange={(e) =>
                 selectRecords(RepoStatus.BLOCKING, e.currentTarget.checked)
               }
@@ -157,7 +157,7 @@ const Follows: Component = () => {
                 <input
                   type="checkbox"
                   id={"record" + index()}
-                  class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
+                  class="h-4 w-4 rounded border-gray-400 text-indigo-600 focus:ring-indigo-600"
                   checked={record.toBeDeleted}
                   onChange={(e) =>
                     setFollowRecords(
