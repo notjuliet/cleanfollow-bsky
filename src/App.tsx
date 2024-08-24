@@ -350,8 +350,11 @@ const Form: Component = () => {
 
   return (
     <div class="flex flex-col items-center">
-      <div class="flex flex-col items-center">
-        <Show when={!loginState()}>
+      <Show when={!loginState()}>
+        <form
+          class="flex flex-col items-center"
+          onsubmit={(e) => e.preventDefault()}
+        >
           <label for="handle">Handle:</label>
           <input
             type="text"
@@ -361,41 +364,40 @@ const Form: Component = () => {
             onInput={(e) => setLoginInput(e.currentTarget.value)}
           />
           <button
-            type="button"
             onclick={() => loginBsky(loginInput())}
             class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
           >
             Login
           </button>
+        </form>
+      </Show>
+      <Show when={loginState()}>
+        <div class="mb-5">
+          Logged in as {userHandle} (
+          <a href="" class="text-red-600" onclick={() => logoutBsky()}>
+            Logout
+          </a>
+          )
+        </div>
+        <Show when={!followRecords.length}>
+          <button
+            type="button"
+            onclick={() => fetchHiddenAccounts()}
+            class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+          >
+            Preview
+          </button>
         </Show>
-        <Show when={loginState()}>
-          <div class="mb-5">
-            Logged in as {userHandle} (
-            <a href="" class="text-red-600" onclick={() => logoutBsky()}>
-              Logout
-            </a>
-            )
-          </div>
-          <Show when={!followRecords.length}>
-            <button
-              type="button"
-              onclick={() => fetchHiddenAccounts()}
-              class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-            >
-              Preview
-            </button>
-          </Show>
-          <Show when={followRecords.length}>
-            <button
-              type="button"
-              onclick={() => unfollow()}
-              class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
-            >
-              Confirm
-            </button>
-          </Show>
+        <Show when={followRecords.length}>
+          <button
+            type="button"
+            onclick={() => unfollow()}
+            class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+          >
+            Confirm
+          </button>
         </Show>
-      </div>
+      </Show>
       <Show when={notice()}>
         <div class="m-3">{notice()}</div>
       </Show>
