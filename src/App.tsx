@@ -91,7 +91,7 @@ const Follows: Component = () => {
                 selectRecords(RepoStatus.DELETED, e.currentTarget.checked)
               }
             />
-            <label for="deleted" class="ml-2">
+            <label for="deleted" class="ml-2 select-none">
               Deleted
             </label>
           </div>
@@ -104,7 +104,7 @@ const Follows: Component = () => {
                 selectRecords(RepoStatus.DEACTIVATED, e.currentTarget.checked)
               }
             />
-            <label for="deactivated" class="ml-2">
+            <label for="deactivated" class="ml-2 select-none">
               Deactivated
             </label>
           </div>
@@ -117,7 +117,7 @@ const Follows: Component = () => {
                 selectRecords(RepoStatus.SUSPENDED, e.currentTarget.checked)
               }
             />
-            <label for="suspended" class="ml-2">
+            <label for="suspended" class="ml-2 select-none">
               Suspended
             </label>
           </div>
@@ -130,7 +130,7 @@ const Follows: Component = () => {
                 selectRecords(RepoStatus.BLOCKEDBY, e.currentTarget.checked)
               }
             />
-            <label for="blockedby" class="ml-2">
+            <label for="blockedby" class="ml-2 select-none">
               Blocked By
             </label>
           </div>
@@ -143,7 +143,7 @@ const Follows: Component = () => {
                 selectRecords(RepoStatus.BLOCKING, e.currentTarget.checked)
               }
             />
-            <label for="blocking" class="ml-2">
+            <label for="blocking" class="ml-2 select-none">
               Blocking
             </label>
           </div>
