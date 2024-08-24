@@ -360,7 +360,7 @@ const Form: Component = () => {
             type="text"
             id="handle"
             placeholder="user.bsky.social"
-            class="rounded-md mt-1 py-1 pl-2 pr-2 mb-3 ring-1 ring-inset ring-gray-300"
+            class="rounded-md mt-1 py-1 px-2 mb-3"
             onInput={(e) => setLoginInput(e.currentTarget.value)}
           />
           <button
