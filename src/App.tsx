@@ -169,10 +169,10 @@ const Follows: Component = () => {
                 />
               </div>
               <div>
-                <label for={"record" + index()}>
-                  <div>@{record.handle} </div>
-                  <div> {record.did} </div>
-                  <div>
+                <label for={"record" + index()} class="flex flex-col">
+                  <span>@{record.handle}</span>
+                  <span>{record.did}</span>
+                  <span>
                     <Switch>
                       <Match
                         when={
@@ -201,7 +201,7 @@ const Follows: Component = () => {
                         Literally Yourself
                       </Match>
                     </Switch>
-                  </div>
+                  </span>
                 </label>
               </div>
             </div>
