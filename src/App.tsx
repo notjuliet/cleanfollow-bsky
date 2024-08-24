@@ -28,8 +28,9 @@ type FollowRecord = {
   toBeDeleted: boolean;
 };
 
-let [followRecords, setFollowRecords] = createStore<FollowRecord[]>([]);
-let [loginState, setLoginState] = createSignal<boolean>();
+const [followRecords, setFollowRecords] = createStore<FollowRecord[]>([]);
+const [loginState, setLoginState] = createSignal<boolean>();
+const [notice, setNotice] = createSignal("");
 
 const client = await BrowserOAuthClient.load({
   clientId: "https://cleanfollow-bsky.pages.dev/client-metadata.json",
@@ -55,11 +56,14 @@ if (result) {
 }
 
 const loginBsky = async (handle: string) => {
+  setNotice("Redirecting...");
   try {
     await client.signIn(handle, {
       signal: new AbortController().signal,
     });
-  } catch (err) {}
+  } catch (err) {
+    setNotice("Error during OAuth redirection");
+  }
 };
 
 const logoutBsky = async () => {
@@ -212,7 +216,6 @@ const Form: Component = () => {
   const [loginInput, setLoginInput] = createSignal("");
   const [progress, setProgress] = createSignal(0);
   const [followCount, setFollowCount] = createSignal(0);
-  const [notice, setNotice] = createSignal("");
 
   const fetchHiddenAccounts = async () => {
     const fetchFollows = async () => {
@@ -411,6 +414,7 @@ const App: Component = () => {
       <h1 class="text-2xl mb-5">cleanfollow-bsky</h1>
       <div class="mb-3 text-center">
         <p>Unfollow blocked, deleted, suspended, and deactivated accounts</p>
+        <p>By default, every account will be unselected</p>
         <div>
           <a
             class="text-blue-600 hover:underline"
