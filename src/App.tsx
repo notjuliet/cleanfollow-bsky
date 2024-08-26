@@ -1,3 +1,9 @@
+// TODO:
+// - dark mode
+// - display loading notice when fetching existing session
+// - rework oauth as implementation fleshes out
+// - split in multiple files?
+
 import {
   createSignal,
   For,
