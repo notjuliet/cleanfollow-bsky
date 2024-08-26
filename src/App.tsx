@@ -78,75 +78,53 @@ const Follows: Component = () => {
     });
   }
 
+  const options: Record<string, { status: RepoStatus; label: string }> = {
+    deleted: {
+      status: RepoStatus.DELETED,
+      label: "Deleted",
+    },
+    deactivated: {
+      status: RepoStatus.DEACTIVATED,
+      label: "Deactivated",
+    },
+    suspended: {
+      status: RepoStatus.SUSPENDED,
+      label: "Suspended",
+    },
+    blockedby: {
+      status: RepoStatus.BLOCKEDBY,
+      label: "Blocked By",
+    },
+    blocking: {
+      status: RepoStatus.BLOCKING,
+      label: "Blocking",
+    },
+  };
+
   return (
     <div class="mt-3">
       <Show when={followRecords.length}>
         <div class="flex flex-row flex-wrap gap-x-5 gap-y-2">
-          <div class="flex h-6 items-center">
-            <input
-              type="checkbox"
-              id="deleted"
-              class="h-4 w-4 rounded border-gray-400 text-indigo-600 focus:ring-indigo-600"
-              onChange={(e) =>
-                selectRecords(RepoStatus.DELETED, e.currentTarget.checked)
-              }
-            />
-            <label for="deleted" class="ml-2 select-none">
-              Deleted
-            </label>
-          </div>
-          <div class="flex h-6 items-center">
-            <input
-              type="checkbox"
-              id="deactivated"
-              class="h-4 w-4 rounded border-gray-400 text-indigo-600 focus:ring-indigo-600"
-              onChange={(e) =>
-                selectRecords(RepoStatus.DEACTIVATED, e.currentTarget.checked)
-              }
-            />
-            <label for="deactivated" class="ml-2 select-none">
-              Deactivated
-            </label>
-          </div>
-          <div class="flex h-6 items-center">
-            <input
-              type="checkbox"
-              id="suspended"
-              class="h-4 w-4 rounded border-gray-400 text-indigo-600 focus:ring-indigo-600"
-              onChange={(e) =>
-                selectRecords(RepoStatus.SUSPENDED, e.currentTarget.checked)
-              }
-            />
-            <label for="suspended" class="ml-2 select-none">
-              Suspended
-            </label>
-          </div>
-          <div class="flex h-6 items-center">
-            <input
-              type="checkbox"
-              id="blockedby"
-              class="h-4 w-4 rounded border-gray-400 text-indigo-600 focus:ring-indigo-600"
-              onChange={(e) =>
-                selectRecords(RepoStatus.BLOCKEDBY, e.currentTarget.checked)
-              }
-            />
-            <label for="blockedby" class="ml-2 select-none">
-              Blocked By
-            </label>
-          </div>
-          <div class="flex h-6 items-center">
-            <input
-              type="checkbox"
-              id="blocking"
-              class="h-4 w-4 rounded border-gray-400 text-indigo-600 focus:ring-indigo-600"
-              onChange={(e) =>
-                selectRecords(RepoStatus.BLOCKING, e.currentTarget.checked)
-              }
-            />
-            <label for="blocking" class="ml-2 select-none">
-              Blocking
-            </label>
-          </div>
+          <For each={Object.keys(options)}>
+            {(option) => (
+              <div class="flex h-6 items-center">
+                <input
+                  type="checkbox"
+                  id={option}
+                  class="h-4 w-4 rounded border-gray-400 text-indigo-600 focus:ring-indigo-600"
+                  onChange={(e) =>
+                    selectRecords(
+                      options[option].status,
+                      e.currentTarget.checked,
+                    )
+                  }
+                />
+                <label for={option} class="ml-2 select-none">
+                  {options[option].label}
+                </label>
+              </div>
+            )}
+          </For>
         </div>
       </Show>
       <div class="mt-5">
