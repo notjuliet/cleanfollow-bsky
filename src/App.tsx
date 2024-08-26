@@ -230,19 +230,17 @@ const Form: Component = () => {
             actor: record.value.subject,
           });
 
+          const viewer = res.data.viewer!;
           let status: RepoStatus | undefined = undefined;
 
-          if (res.data.viewer?.blockedBy) {
+          if (viewer.blockedBy) {
             status =
-              res.data.viewer?.blocking || res.data.viewer?.blockingByList
+              viewer.blocking || viewer.blockingByList
                 ? RepoStatus.BLOCKEDBY | RepoStatus.BLOCKING
                 : RepoStatus.BLOCKEDBY;
           } else if (res.data.did.includes(appAgent.did!)) {
             status = RepoStatus.YOURSELF;
-          } else if (
-            res.data.viewer?.blocking ||
-            res.data.viewer?.blockingByList
-          ) {
+          } else if (viewer.blocking || viewer.blockingByList) {
             status = RepoStatus.BLOCKING;
           }
 
