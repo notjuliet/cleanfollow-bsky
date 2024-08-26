@@ -229,35 +229,29 @@ const Form: Component = () => {
           const res = await appAgent.getProfile({
             actor: record.value.subject,
           });
+
+          let status: RepoStatus | undefined = undefined;
+
           if (res.data.viewer?.blockedBy) {
-            const status =
+            status =
               res.data.viewer?.blocking || res.data.viewer?.blockingByList
                 ? RepoStatus.BLOCKEDBY | RepoStatus.BLOCKING
                 : RepoStatus.BLOCKEDBY;
+          } else if (res.data.did.includes(appAgent.did!)) {
+            status = RepoStatus.YOURSELF;
+          } else if (
+            res.data.viewer?.blocking ||
+            res.data.viewer?.blockingByList
+          ) {
+            status = RepoStatus.BLOCKING;
+          }
+
+          if (status !== undefined) {
             setFollowRecords(followRecords.length, {
               did: record.value.subject,
               handle: res.data.handle,
               uri: record.uri,
               status: status,
-              toBeDeleted: false,
-            });
-          } else if (res.data.did.includes(appAgent.did!)) {
-            setFollowRecords(followRecords.length, {
-              did: record.value.subject,
-              handle: res.data.handle,
-              uri: record.uri,
-              status: RepoStatus.YOURSELF,
-              toBeDeleted: false,
-            });
-          } else if (
-            res.data.viewer?.blocking ||
-            res.data.viewer?.blockingByList
-          ) {
-            setFollowRecords(followRecords.length, {
-              did: record.value.subject,
-              handle: res.data.handle,
-              uri: record.uri,
-              status: RepoStatus.BLOCKING,
               toBeDeleted: false,
             });
           }
