@@ -111,22 +111,19 @@ const Follows: Component = () => {
     <div class="mt-3">
       <Show when={followRecords.length}>
         <div class="flex flex-row flex-wrap gap-x-5 gap-y-2">
-          <For each={Object.keys(options)}>
+          <For each={Object.entries(options)}>
             {(option) => (
               <div class="flex h-6 items-center">
                 <input
                   type="checkbox"
-                  id={option}
+                  id={option[0]}
                   class="h-4 w-4 rounded border-gray-400 text-indigo-600 focus:ring-indigo-600"
                   onChange={(e) =>
-                    selectRecords(
-                      options[option].status,
-                      e.currentTarget.checked,
-                    )
+                    selectRecords(option[1].status, e.currentTarget.checked)
                   }
                 />
-                <label for={option} class="ml-2 select-none">
-                  {options[option].label}
+                <label for={option[0]} class="ml-2 select-none">
+                  {option[1].label}
                 </label>
               </div>
             )}
