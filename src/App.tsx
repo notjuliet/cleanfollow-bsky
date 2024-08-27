@@ -15,7 +15,10 @@ import {
 import { createStore } from "solid-js/store";
 
 import { Agent } from "@atproto/api";
-import { BrowserOAuthClient, OAuthAgent } from "@atproto/oauth-client-browser";
+import {
+  BrowserOAuthClient,
+  OAuthSession,
+} from "@atproto/oauth-client-browser";
 
 enum RepoStatus {
   BLOCKEDBY = 1 << 0,
@@ -50,7 +53,7 @@ client.addEventListener("deleted", () => {
 let appAgent: Agent;
 let userHandle: string;
 
-const result: undefined | { agent: OAuthAgent; state?: string } = await client
+const result: undefined | { agent: OAuthSession; state?: string } = await client
   .init()
   .catch(() => {});
 

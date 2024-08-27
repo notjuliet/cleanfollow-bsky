@@ -11,7 +11,7 @@
   },
   "license": "0BSD",
   "devDependencies": {
-    "@atproto/oauth-client-browser": "^0.1.5",
+    "@atproto/oauth-client-browser": "^0.2.0",
     "@tailwindcss/forms": "^0.5.7",
     "autoprefixer": "^10.4.19",
     "postcss": "^8.4.39",
