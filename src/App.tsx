@@ -53,9 +53,7 @@ client.addEventListener("deleted", () => {
 let appAgent: Agent;
 let userHandle: string;
 
-const result: undefined | { agent: OAuthSession; state?: string } = await client
-  .init()
-  .catch(() => {});
+const result: undefined | OAuthSession = await client.init().catch(() => {});
 
 if (result) {
   const init = await client.init();
@@ -78,7 +76,7 @@ const loginBsky = async (handle: string) => {
 };
 
 const logoutBsky = async () => {
-  if (result) await client.revoke(result.agent.sub);
+  if (result) await client.revoke(result.sub);
 };
 
 const Follows: Component = () => {
