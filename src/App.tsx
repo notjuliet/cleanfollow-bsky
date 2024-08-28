@@ -1,8 +1,6 @@
 // TODO:
 // - dark mode
 // - display loading notice when fetching existing session
-// - rework oauth as implementation fleshes out
-// - split in multiple files?
 
 import {
   createSignal,
@@ -15,10 +13,7 @@ import {
 import { createStore } from "solid-js/store";
 
 import { Agent } from "@atproto/api";
-import {
-  BrowserOAuthClient,
-  OAuthSession,
-} from "@atproto/oauth-client-browser";
+import { BrowserOAuthClient } from "@atproto/oauth-client-browser";
 
 enum RepoStatus {
   BLOCKEDBY = 1 << 0,
@@ -50,16 +45,15 @@ client.addEventListener("deleted", () => {
   setLoginState(false);
 });
 
-let appAgent: Agent;
+let agent: Agent;
 let userHandle: string;
 
-const result: undefined | OAuthSession = await client.init().catch(() => {});
+const result = await client.init().catch(() => {});
 
 if (result) {
-  const init = await client.init();
-  appAgent = new Agent(init!.session);
+  agent = new Agent(result.session);
   setLoginState(true);
-  const res = await appAgent.getProfile({ actor: appAgent.did! });
+  const res = await agent.getProfile({ actor: agent.did! });
   userHandle = res.data.handle;
 }
 
@@ -76,7 +70,7 @@ const loginBsky = async (handle: string) => {
 };
 
 const logoutBsky = async () => {
-  if (result) await client.revoke(result.sub);
+  if (result) await client.revoke(result.session.sub);
 };
 
 const Follows: Component = () => {
@@ -205,8 +199,8 @@ const Form: Component = () => {
     const fetchFollows = async () => {
       const PAGE_LIMIT = 100;
       const fetchPage = async (cursor?: any) => {
-        return await appAgent.com.atproto.repo.listRecords({
-          repo: appAgent.did!,
+        return await agent.com.atproto.repo.listRecords({
+          repo: agent.did!,
           collection: "app.bsky.graph.follow",
           limit: PAGE_LIMIT,
           cursor: cursor,
@@ -232,7 +226,7 @@ const Form: Component = () => {
         setFollowCount(follows.length);
 
         try {
-          const res = await appAgent.getProfile({
+          const res = await agent.getProfile({
             actor: record.value.subject,
           });
 
@@ -244,7 +238,7 @@ const Form: Component = () => {
               viewer.blocking || viewer.blockingByList
                 ? RepoStatus.BLOCKEDBY | RepoStatus.BLOCKING
                 : RepoStatus.BLOCKEDBY;
-          } else if (res.data.did.includes(appAgent.did!)) {
+          } else if (res.data.did.includes(agent.did!)) {
             status = RepoStatus.YOURSELF;
           } else if (viewer.blocking || viewer.blockingByList) {
             status = RepoStatus.BLOCKING;
@@ -312,8 +306,8 @@ const Form: Component = () => {
 
     const BATCHSIZE = 200;
     for (let i = 0; i < writes.length; i += BATCHSIZE) {
-      await appAgent.com.atproto.repo.applyWrites({
-        repo: appAgent.did!,
+      await agent.com.atproto.repo.applyWrites({
+        repo: agent.did!,
         writes: writes.slice(i, i + BATCHSIZE),
       });
     }
