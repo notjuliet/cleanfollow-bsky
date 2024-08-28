@@ -1,7 +1,3 @@
-// TODO:
-// - dark mode
-// - display loading notice when fetching existing session
-
 import {
   createSignal,
   For,
