@@ -58,7 +58,8 @@ const result: undefined | { agent: OAuthSession; state?: string } = await client
   .catch(() => {});
 
 if (result) {
-  appAgent = result.agent;
+  const init = await client.init();
+  appAgent = new Agent(init!.session);
   setLoginState(true);
   const res = await appAgent.getProfile({ actor: appAgent.did! });
   userHandle = res.data.handle;
@@ -68,6 +69,7 @@ const loginBsky = async (handle: string) => {
   setNotice("Redirecting...");
   try {
     await client.signIn(handle, {
+      scope: "atproto transition:generic",
       signal: new AbortController().signal,
     });
   } catch (err) {
