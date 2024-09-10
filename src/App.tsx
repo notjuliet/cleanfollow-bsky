@@ -311,7 +311,9 @@ const Form: Component = () => {
     setFollowRecords([]);
     setProgress(0);
     setFollowCount(0);
-    setNotice(`Unfollowed ${writes.length} accounts`);
+    setNotice(
+      `Unfollowed ${writes.length} account${writes.length > 1 ? "s" : ""}`,
+    );
   };
 
   return (
