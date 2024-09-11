@@ -148,7 +148,7 @@ const Follows: Component = () => {
                   <input
                     type="checkbox"
                     id={"record" + index()}
-                    class="h-4 w-4 rounded border-gray-400 text-indigo-600 focus:ring-indigo-600"
+                    class="h-4 w-4 rounded"
                     checked={record.toBeDeleted}
                     onChange={(e) =>
                       setFollowRecords(
