@@ -96,7 +96,7 @@ const Follows: Component = () => {
 
   return (
     <div class="mt-3 flex flex-col sm:flex-row">
-      <div class="mr-5 mb-3 pb-3 justify-around sm:mb-0 sm:top-3 top-0 border-b border-b-gray-400 sm:border-none w-full bg-white sm:w-auto sticky sm:self-start flex flex-wrap sm:flex-col">
+      <div class="sticky top-0 mb-3 mr-5 flex w-full flex-wrap justify-around border-b border-b-gray-400 bg-white pb-3 sm:top-3 sm:mb-0 sm:w-auto sm:flex-col sm:self-start sm:border-none">
         <For each={options}>
           {(option, index) => (
             <div
@@ -107,17 +107,17 @@ const Follows: Component = () => {
               }}
             >
               <div>
-                <label class="inline-flex items-center mt-1 mb-2 cursor-pointer">
+                <label class="mb-2 mt-1 inline-flex cursor-pointer items-center">
                   <input
                     type="checkbox"
-                    class="sr-only peer"
+                    class="peer sr-only"
                     checked
                     onChange={(e) =>
                       changeVisibility(option.status, e.currentTarget.checked)
                     }
                   />
-                  <span class="relative w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></span>
-                  <span class="ms-3 dark:text-gray-300 select-none">
+                  <span class="peer relative h-5 w-9 rounded-full bg-gray-200 after:absolute after:start-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-blue-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:border-gray-600 dark:bg-gray-700 dark:peer-focus:ring-blue-800 rtl:peer-checked:after:-translate-x-full"></span>
+                  <span class="ms-3 select-none dark:text-gray-300">
                     {option.label}
                   </span>
                 </label>
@@ -143,7 +143,7 @@ const Follows: Component = () => {
         <For each={followRecords}>
           {(record, index) => (
             <Show when={record.visible}>
-              <div class="flex items-center border-b mb-2 pb-2">
+              <div class="mb-2 flex items-center border-b pb-2">
                 <div class="mr-4">
                   <input
                     type="checkbox"
@@ -353,12 +353,12 @@ const Form: Component = () => {
             type="text"
             id="handle"
             placeholder="user.bsky.social"
-            class="rounded-md mt-1 py-1 px-2 mb-3"
+            class="mb-3 mt-1 rounded-md px-2 py-1"
             onInput={(e) => setLoginInput(e.currentTarget.value)}
           />
           <button
             onclick={() => loginBsky(loginInput())}
-            class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+            class="rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-700"
           >
             Login
           </button>
@@ -376,7 +376,7 @@ const Form: Component = () => {
           <button
             type="button"
             onclick={() => fetchHiddenAccounts()}
-            class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+            class="rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-700"
           >
             Preview
           </button>
@@ -385,7 +385,7 @@ const Form: Component = () => {
           <button
             type="button"
             onclick={() => unfollow()}
-            class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+            class="rounded bg-green-500 px-4 py-2 font-bold text-white hover:bg-green-700"
           >
             Confirm
           </button>
@@ -405,8 +405,8 @@ const Form: Component = () => {
 
 const App: Component = () => {
   return (
-    <div class="flex flex-col items-center m-5">
-      <h1 class="text-2xl mb-5">cleanfollow-bsky</h1>
+    <div class="m-5 flex flex-col items-center">
+      <h1 class="mb-5 text-2xl">cleanfollow-bsky</h1>
       <div class="mb-3 text-center">
         <p>Unfollow blocked, deleted, suspended, and deactivated accounts</p>
         <p>By default, every account will be unselected</p>
