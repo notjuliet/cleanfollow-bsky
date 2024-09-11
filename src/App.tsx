@@ -18,6 +18,7 @@ enum RepoStatus {
   DEACTIVATED = 1 << 3,
   SUSPENDED = 1 << 4,
   YOURSELF = 1 << 5,
+  NONMUTUAL = 1 << 6,
 }
 
 type FollowRecord = {
@@ -26,6 +27,7 @@ type FollowRecord = {
   uri: string;
   status: RepoStatus;
   toBeDeleted: boolean;
+  visible: boolean;
 };
 
 const [followRecords, setFollowRecords] = createStore<FollowRecord[]>([]);
@@ -77,108 +79,127 @@ const Follows: Component = () => {
     });
   }
 
-  const options: Record<string, { status: RepoStatus; label: string }> = {
-    deleted: {
-      status: RepoStatus.DELETED,
-      label: "Deleted",
-    },
-    deactivated: {
-      status: RepoStatus.DEACTIVATED,
-      label: "Deactivated",
-    },
-    suspended: {
-      status: RepoStatus.SUSPENDED,
-      label: "Suspended",
-    },
-    blockedby: {
-      status: RepoStatus.BLOCKEDBY,
-      label: "Blocked By",
-    },
-    blocking: {
-      status: RepoStatus.BLOCKING,
-      label: "Blocking",
-    },
-  };
+  function changeVisibility(status: RepoStatus, visible: boolean) {
+    followRecords.forEach((record, index) => {
+      if (record.status & status) setFollowRecords(index, "visible", visible);
+    });
+  }
+
+  const options: { status: RepoStatus; label: string }[] = [
+    { status: RepoStatus.DELETED, label: "Deleted" },
+    { status: RepoStatus.DEACTIVATED, label: "Deactivated" },
+    { status: RepoStatus.SUSPENDED, label: "Suspended" },
+    { status: RepoStatus.BLOCKEDBY, label: "Blocked By" },
+    { status: RepoStatus.BLOCKING, label: "Blocking" },
+    { status: RepoStatus.NONMUTUAL, label: "Non Mutual" },
+  ];
 
   return (
-    <div class="mt-3">
-      <Show when={followRecords.length}>
-        <div class="flex flex-row flex-wrap gap-x-5 gap-y-2">
-          <For each={Object.entries(options)}>
-            {(option) => (
-              <div class="flex h-6 items-center">
-                <input
-                  type="checkbox"
-                  id={option[0]}
-                  class="h-4 w-4 rounded border-gray-400 text-indigo-600 focus:ring-indigo-600"
-                  onChange={(e) =>
-                    selectRecords(option[1].status, e.currentTarget.checked)
-                  }
-                />
-                <label for={option[0]} class="ml-2 select-none">
-                  {option[1].label}
-                </label>
-              </div>
-            )}
-          </For>
-        </div>
-      </Show>
-      <div class="mt-5">
-        <For each={followRecords}>
-          {(record, index) => (
-            <div class="flex flex-row items-center border-b mb-2 pb-2">
-              <div class="mr-4">
-                <input
-                  type="checkbox"
-                  id={"record" + index()}
-                  class="h-4 w-4 rounded border-gray-400 text-indigo-600 focus:ring-indigo-600"
-                  checked={record.toBeDeleted}
-                  onChange={(e) =>
-                    setFollowRecords(
-                      index(),
-                      "toBeDeleted",
-                      e.currentTarget.checked,
-                    )
-                  }
-                />
-              </div>
+    <div class="mt-3 flex flex-col sm:flex-row">
+      <div class="mr-5 mb-3 pb-3 justify-around sm:mb-0 sm:top-3 top-0 border-b border-b-gray-400 sm:border-none w-full bg-white sm:w-auto sticky sm:self-start flex flex-wrap sm:flex-col">
+        <For each={options}>
+          {(option, index) => (
+            <div
+              classList={{
+                "sm:pb-2 min-w-36 sm:mb-2 mt-3 sm:mt-0": true,
+                "sm:border-b sm:border-b-gray-300":
+                  index() < options.length - 1,
+              }}
+            >
               <div>
-                <label for={"record" + index()} class="flex flex-col">
-                  <span>@{record.handle}</span>
-                  <span>{record.did}</span>
-                  <span>
-                    <Switch>
-                      <Match
-                        when={
-                          record.status ==
-                          (RepoStatus.BLOCKEDBY | RepoStatus.BLOCKING)
-                        }
-                      >
-                        Mutual Block
-                      </Match>
-                      <Match when={record.status == RepoStatus.DELETED}>
-                        Deleted
-                      </Match>
-                      <Match when={record.status == RepoStatus.DEACTIVATED}>
-                        Deactivated
-                      </Match>
-                      <Match when={record.status == RepoStatus.BLOCKEDBY}>
-                        Blocked by
-                      </Match>
-                      <Match when={record.status == RepoStatus.BLOCKING}>
-                        Blocking
-                      </Match>
-                      <Match when={record.status == RepoStatus.SUSPENDED}>
-                        Suspended
-                      </Match>
-                      <Match when={record.status == RepoStatus.YOURSELF}>
-                        Literally Yourself
-                      </Match>
-                    </Switch>
+                <label class="inline-flex items-center mt-1 mb-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    class="sr-only peer"
+                    checked
+                    onChange={(e) =>
+                      changeVisibility(option.status, e.currentTarget.checked)
+                    }
+                  />
+                  <span class="relative w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></span>
+                  <span class="ms-3 dark:text-gray-300 select-none">
+                    {option.label}
                   </span>
                 </label>
               </div>
+              <div class="flex items-center">
+                <input
+                  type="checkbox"
+                  id={option.label}
+                  class="h-4 w-4 rounded"
+                  onChange={(e) =>
+                    selectRecords(option.status, e.currentTarget.checked)
+                  }
+                />
+                <label for={option.label} class="ml-2 select-none">
+                  Select All
+                </label>
+              </div>
             </div>
+          )}
+        </For>
+      </div>
+      <div>
+        <For each={followRecords}>
+          {(record, index) => (
+            <Show when={record.visible}>
+              <div class="flex items-center border-b mb-2 pb-2">
+                <div class="mr-4">
+                  <input
+                    type="checkbox"
+                    id={"record" + index()}
+                    class="h-4 w-4 rounded border-gray-400 text-indigo-600 focus:ring-indigo-600"
+                    checked={record.toBeDeleted}
+                    onChange={(e) =>
+                      setFollowRecords(
+                        index(),
+                        "toBeDeleted",
+                        e.currentTarget.checked,
+                      )
+                    }
+                  />
+                </div>
+                <div>
+                  <label for={"record" + index()} class="flex flex-col">
+                    <span>@{record.handle}</span>
+                    <span>{record.did}</span>
+                    <span>
+                      <Switch>
+                        <Match
+                          when={
+                            record.status ==
+                            (RepoStatus.BLOCKEDBY | RepoStatus.BLOCKING)
+                          }
+                        >
+                          Mutual Block
+                        </Match>
+                        <Match when={record.status == RepoStatus.DELETED}>
+                          Deleted
+                        </Match>
+                        <Match when={record.status == RepoStatus.DEACTIVATED}>
+                          Deactivated
+                        </Match>
+                        <Match when={record.status == RepoStatus.BLOCKEDBY}>
+                          Blocked by
+                        </Match>
+                        <Match when={record.status == RepoStatus.BLOCKING}>
+                          Blocking
+                        </Match>
+                        <Match when={record.status == RepoStatus.SUSPENDED}>
+                          Suspended
+                        </Match>
+                        <Match when={record.status == RepoStatus.YOURSELF}>
+                          Literally Yourself
+                        </Match>
+                        <Match when={record.status == RepoStatus.NONMUTUAL}>
+                          Non Mutual
+                        </Match>
+                      </Switch>
+                    </span>
+                  </label>
+                </div>
+              </div>
+            </Show>
           )}
         </For>
       </div>
@@ -229,6 +250,8 @@ const Form: Component = () => {
           const viewer = res.data.viewer!;
           let status: RepoStatus | undefined = undefined;
 
+          if (!viewer.followedBy) status = RepoStatus.NONMUTUAL;
+
           if (viewer.blockedBy) {
             status =
               viewer.blocking || viewer.blockingByList
@@ -247,6 +270,7 @@ const Form: Component = () => {
               uri: record.uri,
               status: status,
               toBeDeleted: false,
+              visible: true,
             });
           }
         } catch (e: any) {
@@ -281,6 +305,7 @@ const Form: Component = () => {
               uri: record.uri,
               status: status,
               toBeDeleted: false,
+              visible: true,
             });
           }
         }
@@ -409,7 +434,7 @@ const App: Component = () => {
         </div>
       </div>
       <Form />
-      <Show when={loginState()}>
+      <Show when={loginState() && followRecords.length}>
         <Follows />
       </Show>
     </div>
