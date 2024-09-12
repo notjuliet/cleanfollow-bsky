@@ -218,9 +218,9 @@ const Form: Component = () => {
 
           if (viewer.blockedBy) {
             status =
-              viewer.blocking || viewer.blockingByList
-                ? RepoStatus.BLOCKEDBY | RepoStatus.BLOCKING
-                : RepoStatus.BLOCKEDBY;
+              viewer.blocking || viewer.blockingByList ?
+                RepoStatus.BLOCKEDBY | RepoStatus.BLOCKING
+              : RepoStatus.BLOCKEDBY;
           } else if (res.data.did.includes(agent.did!)) {
             status = RepoStatus.YOURSELF;
           } else if (viewer.blocking || viewer.blockingByList) {
@@ -228,20 +228,18 @@ const Form: Component = () => {
           }
         } catch (e: any) {
           const res = await fetch(
-            record.value.subject.startsWith("did:web")
-              ? "https://" +
-                  record.value.subject.split(":")[2] +
-                  "/.well-known/did.json"
-              : "https://plc.directory/" + record.value.subject,
+            record.value.subject.startsWith("did:web") ?
+              "https://" +
+                record.value.subject.split(":")[2] +
+                "/.well-known/did.json"
+            : "https://plc.directory/" + record.value.subject,
           );
 
-          status = e.message.includes("not found")
-            ? RepoStatus.DELETED
-            : e.message.includes("deactivated")
-              ? RepoStatus.DEACTIVATED
-              : e.message.includes("suspended")
-                ? RepoStatus.SUSPENDED
-                : undefined;
+          status =
+            e.message.includes("not found") ? RepoStatus.DELETED
+            : e.message.includes("deactivated") ? RepoStatus.DEACTIVATED
+            : e.message.includes("suspended") ? RepoStatus.SUSPENDED
+            : undefined;
 
           handle = await res.json().then((doc) => {
             for (const alias of doc.alsoKnownAs) {
@@ -253,23 +251,15 @@ const Form: Component = () => {
         }
 
         const status_label =
-          status == RepoStatus.DELETED
-            ? "Deleted"
-            : status == RepoStatus.DEACTIVATED
-              ? "Deactivated"
-              : status == RepoStatus.SUSPENDED
-                ? "Suspended"
-                : status == RepoStatus.NONMUTUAL
-                  ? "Non Mutual"
-                  : status == RepoStatus.YOURSELF
-                    ? "Literally Yourself"
-                    : status == RepoStatus.BLOCKING
-                      ? "Blocking"
-                      : status == RepoStatus.BLOCKEDBY
-                        ? "Blocked by"
-                        : RepoStatus.BLOCKEDBY | RepoStatus.BLOCKING
-                          ? "Mutual Block"
-                          : "";
+          status == RepoStatus.DELETED ? "Deleted"
+          : status == RepoStatus.DEACTIVATED ? "Deactivated"
+          : status == RepoStatus.SUSPENDED ? "Suspended"
+          : status == RepoStatus.NONMUTUAL ? "Non Mutual"
+          : status == RepoStatus.YOURSELF ? "Literally Yourself"
+          : status == RepoStatus.BLOCKING ? "Blocking"
+          : status == RepoStatus.BLOCKEDBY ? "Blocked by"
+          : RepoStatus.BLOCKEDBY | RepoStatus.BLOCKING ? "Mutual Block"
+          : "";
 
         if (status !== undefined) {
           setFollowRecords(followRecords.length, {
