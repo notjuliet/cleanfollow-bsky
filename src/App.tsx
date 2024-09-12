@@ -1,11 +1,4 @@
-import {
-  createSignal,
-  For,
-  Switch,
-  Match,
-  Show,
-  type Component,
-} from "solid-js";
+import { createSignal, For, Show, type Component } from "solid-js";
 import { createStore } from "solid-js/store";
 
 import { Agent } from "@atproto/api";
@@ -26,6 +19,7 @@ type FollowRecord = {
   handle: string;
   uri: string;
   status: RepoStatus;
+  status_label: string;
   toBeDeleted: boolean;
   visible: boolean;
 };
@@ -163,39 +157,7 @@ const Follows: Component = () => {
                   <label for={"record" + index()} class="flex flex-col">
                     <span>@{record.handle}</span>
                     <span>{record.did}</span>
-                    <span>
-                      <Switch>
-                        <Match
-                          when={
-                            record.status ==
-                            (RepoStatus.BLOCKEDBY | RepoStatus.BLOCKING)
-                          }
-                        >
-                          Mutual Block
-                        </Match>
-                        <Match when={record.status == RepoStatus.DELETED}>
-                          Deleted
-                        </Match>
-                        <Match when={record.status == RepoStatus.DEACTIVATED}>
-                          Deactivated
-                        </Match>
-                        <Match when={record.status == RepoStatus.BLOCKEDBY}>
-                          Blocked by
-                        </Match>
-                        <Match when={record.status == RepoStatus.BLOCKING}>
-                          Blocking
-                        </Match>
-                        <Match when={record.status == RepoStatus.SUSPENDED}>
-                          Suspended
-                        </Match>
-                        <Match when={record.status == RepoStatus.YOURSELF}>
-                          Literally Yourself
-                        </Match>
-                        <Match when={record.status == RepoStatus.NONMUTUAL}>
-                          Non Mutual
-                        </Match>
-                      </Switch>
-                    </span>
+                    <span>{record.status_label}</span>
                   </label>
                 </div>
               </div>
@@ -238,17 +200,19 @@ const Form: Component = () => {
     setNotice("");
     setProgress(0);
 
-    await fetchFollows().then((follows) =>
+    await fetchFollows().then((follows) => {
+      setFollowCount(follows.length);
       follows.forEach(async (record: any) => {
-        setFollowCount(follows.length);
+        let status: RepoStatus | undefined = undefined;
+        let handle = "";
 
         try {
           const res = await agent.getProfile({
             actor: record.value.subject,
           });
 
+          handle = res.data.handle;
           const viewer = res.data.viewer!;
-          let status: RepoStatus | undefined = undefined;
 
           if (!viewer.followedBy) status = RepoStatus.NONMUTUAL;
 
@@ -262,17 +226,6 @@ const Form: Component = () => {
           } else if (viewer.blocking || viewer.blockingByList) {
             status = RepoStatus.BLOCKING;
           }
-
-          if (status !== undefined) {
-            setFollowRecords(followRecords.length, {
-              did: record.value.subject,
-              handle: res.data.handle,
-              uri: record.uri,
-              status: status,
-              toBeDeleted: false,
-              visible: true,
-            });
-          }
         } catch (e: any) {
           const res = await fetch(
             record.value.subject.startsWith("did:web")
@@ -282,7 +235,7 @@ const Form: Component = () => {
               : "https://plc.directory/" + record.value.subject,
           );
 
-          const status = e.message.includes("not found")
+          status = e.message.includes("not found")
             ? RepoStatus.DELETED
             : e.message.includes("deactivated")
               ? RepoStatus.DEACTIVATED
@@ -290,28 +243,48 @@ const Form: Component = () => {
                 ? RepoStatus.SUSPENDED
                 : undefined;
 
-          const handle = await res.json().then((doc) => {
+          handle = await res.json().then((doc) => {
             for (const alias of doc.alsoKnownAs) {
               if (alias.includes("at://")) {
                 return alias.split("//")[1];
               }
             }
           });
+        }
 
-          if (status !== undefined) {
-            setFollowRecords(followRecords.length, {
-              did: record.value.subject,
-              handle: handle,
-              uri: record.uri,
-              status: status,
-              toBeDeleted: false,
-              visible: true,
-            });
-          }
+        const status_label =
+          status == RepoStatus.DELETED
+            ? "Deleted"
+            : status == RepoStatus.DEACTIVATED
+              ? "Deactivated"
+              : status == RepoStatus.SUSPENDED
+                ? "Suspended"
+                : status == RepoStatus.NONMUTUAL
+                  ? "Non Mutual"
+                  : status == RepoStatus.YOURSELF
+                    ? "Literally Yourself"
+                    : status == RepoStatus.BLOCKING
+                      ? "Blocking"
+                      : status == RepoStatus.BLOCKEDBY
+                        ? "Blocked by"
+                        : RepoStatus.BLOCKEDBY | RepoStatus.BLOCKING
+                          ? "Mutual Block"
+                          : "";
+
+        if (status !== undefined) {
+          setFollowRecords(followRecords.length, {
+            did: record.value.subject,
+            handle: handle,
+            uri: record.uri,
+            status: status,
+            status_label: status_label,
+            toBeDeleted: false,
+            visible: true,
+          });
         }
         setProgress(progress() + 1);
-      }),
-    );
+      });
+    });
   };
 
   const unfollow = async () => {
