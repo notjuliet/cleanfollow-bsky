@@ -66,16 +66,13 @@ const logoutBsky = async () => {
 };
 
 const Follows: Component = () => {
-  function selectRecords(status: RepoStatus, toBeDeleted: boolean) {
+  function editRecords(
+    status: RepoStatus,
+    field: keyof FollowRecord,
+    value: boolean,
+  ) {
     followRecords.forEach((record, index) => {
-      if (record.status & status)
-        setFollowRecords(index, "toBeDeleted", toBeDeleted);
-    });
-  }
-
-  function changeVisibility(status: RepoStatus, visible: boolean) {
-    followRecords.forEach((record, index) => {
-      if (record.status & status) setFollowRecords(index, "visible", visible);
+      if (record.status & status) setFollowRecords(index, field, value);
     });
   }
 
@@ -107,7 +104,11 @@ const Follows: Component = () => {
                     class="peer sr-only"
                     checked
                     onChange={(e) =>
-                      changeVisibility(option.status, e.currentTarget.checked)
+                      editRecords(
+                        option.status,
+                        "visible",
+                        e.currentTarget.checked,
+                      )
                     }
                   />
                   <span class="peer relative h-5 w-9 rounded-full bg-gray-200 after:absolute after:start-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-blue-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:border-gray-600 dark:bg-gray-700 dark:peer-focus:ring-blue-800 rtl:peer-checked:after:-translate-x-full"></span>
@@ -122,7 +123,11 @@ const Follows: Component = () => {
                   id={option.label}
                   class="h-4 w-4 rounded"
                   onChange={(e) =>
-                    selectRecords(option.status, e.currentTarget.checked)
+                    editRecords(
+                      option.status,
+                      "toBeDeleted",
+                      e.currentTarget.checked,
+                    )
                   }
                 />
                 <label for={option.label} class="ml-2 select-none">
