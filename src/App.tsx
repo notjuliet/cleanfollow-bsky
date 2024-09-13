@@ -40,13 +40,28 @@ client.addEventListener("deleted", () => {
 let agent: Agent;
 let userHandle: string;
 
+const resolveDid = async (did: string) => {
+  const res = await fetch(
+    did.startsWith("did:web") ?
+      `https://${did.split(":")[2]}/.well-known/did.json`
+    : "https://plc.directory/" + did,
+  );
+
+  return await res.json().then((doc) => {
+    for (const alias of doc.alsoKnownAs) {
+      if (alias.includes("at://")) {
+        return alias.split("//")[1];
+      }
+    }
+  });
+};
+
 const result = await client.init().catch(() => {});
 
 if (result) {
   agent = new Agent(result.session);
   setLoginState(true);
-  const res = await agent.getProfile({ actor: agent.did! });
-  userHandle = res.data.handle;
+  userHandle = await resolveDid(agent.did!);
 }
 
 const loginBsky = async (handle: string) => {
@@ -232,20 +247,7 @@ const Form: Component = () => {
             status = RepoStatus.BLOCKING;
           }
         } catch (e: any) {
-          const subject = record.value.subject;
-          const res = await fetch(
-            subject.startsWith("did:web") ?
-              `https://${subject.split(":")[2]}/.well-known/did.json`
-            : "https://plc.directory/" + subject,
-          );
-
-          handle = await res.json().then((doc) => {
-            for (const alias of doc.alsoKnownAs) {
-              if (alias.includes("at://")) {
-                return alias.split("//")[1];
-              }
-            }
-          });
+          handle = await resolveDid(record.value.subject);
 
           status =
             e.message.includes("not found") ? RepoStatus.DELETED
