@@ -227,19 +227,12 @@ const Form: Component = () => {
             status = RepoStatus.BLOCKING;
           }
         } catch (e: any) {
+          const subject = record.value.subject;
           const res = await fetch(
-            record.value.subject.startsWith("did:web") ?
-              "https://" +
-                record.value.subject.split(":")[2] +
-                "/.well-known/did.json"
-            : "https://plc.directory/" + record.value.subject,
+            subject.startsWith("did:web") ?
+              `https://${subject.split(":")[2]}/.well-known/did.json`
+            : "https://plc.directory/" + subject,
           );
-
-          status =
-            e.message.includes("not found") ? RepoStatus.DELETED
-            : e.message.includes("deactivated") ? RepoStatus.DEACTIVATED
-            : e.message.includes("suspended") ? RepoStatus.SUSPENDED
-            : undefined;
 
           handle = await res.json().then((doc) => {
             for (const alias of doc.alsoKnownAs) {
@@ -248,6 +241,12 @@ const Form: Component = () => {
               }
             }
           });
+
+          status =
+            e.message.includes("not found") ? RepoStatus.DELETED
+            : e.message.includes("deactivated") ? RepoStatus.DEACTIVATED
+            : e.message.includes("suspended") ? RepoStatus.SUSPENDED
+            : undefined;
         }
 
         const status_label =
