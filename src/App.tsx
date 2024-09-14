@@ -353,7 +353,7 @@ const Follows: Component = () => {
           )}
         </For>
       </div>
-      <div class="sm:w-1/2">
+      <div class="sm:min-w-96">
         <For each={followRecords}>
           {(record, index) => (
             <Show when={record.visible}>
