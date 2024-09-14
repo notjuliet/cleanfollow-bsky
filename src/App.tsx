@@ -1,4 +1,4 @@
-import { createSignal, For, Show, type Component } from "solid-js";
+import { createSignal, onMount, For, Show, type Component } from "solid-js";
 import { createStore } from "solid-js/store";
 
 import { Agent } from "@atproto/api";
@@ -25,20 +25,8 @@ type FollowRecord = {
 };
 
 const [followRecords, setFollowRecords] = createStore<FollowRecord[]>([]);
-const [loginState, setLoginState] = createSignal<boolean>();
-const [notice, setNotice] = createSignal("");
-
-const client = await BrowserOAuthClient.load({
-  clientId: "https://cleanfollow-bsky.pages.dev/client-metadata.json",
-  handleResolver: "https://boletus.us-west.host.bsky.network",
-});
-
-client.addEventListener("deleted", () => {
-  setLoginState(false);
-});
-
+const [loginState, setLoginState] = createSignal(false);
 let agent: Agent;
-let userHandle: string;
 
 const resolveDid = async (did: string) => {
   const res = await fetch(
@@ -56,28 +44,241 @@ const resolveDid = async (did: string) => {
   });
 };
 
-const result = await client.init().catch(() => {});
+const Login: Component = () => {
+  const [loginInput, setLoginInput] = createSignal("");
+  const [handle, setHandle] = createSignal("");
+  const [notice, setNotice] = createSignal("");
+  let client: BrowserOAuthClient;
+  let sub: string;
 
-if (result) {
-  agent = new Agent(result.session);
-  setLoginState(true);
-  userHandle = await resolveDid(agent.did!);
-}
-
-const loginBsky = async (handle: string) => {
-  setNotice("Redirecting...");
-  try {
-    await client.signIn(handle, {
-      scope: "atproto transition:generic",
-      signal: new AbortController().signal,
+  onMount(async () => {
+    setNotice("Loading...");
+    //clientId: "https://cleanfollow-bsky.pages.dev/client-metadata.json",
+    client = new BrowserOAuthClient({
+      clientMetadata: undefined,
+      handleResolver: "https://boletus.us-west.host.bsky.network",
     });
-  } catch (err) {
-    setNotice("Error during OAuth redirection");
-  }
+
+    client.addEventListener("deleted", () => {
+      setLoginState(false);
+    });
+    const result = await client.init().catch(() => {});
+
+    if (result) {
+      agent = new Agent(result.session);
+      setLoginState(true);
+      setHandle(await resolveDid(agent.did!));
+      sub = result.session.sub;
+    }
+    setNotice("");
+  });
+
+  const loginBsky = async (handle: string) => {
+    setNotice("Redirecting...");
+    try {
+      await client.signIn(handle, {
+        scope: "atproto transition:generic",
+        signal: new AbortController().signal,
+      });
+    } catch (err) {
+      setNotice("Error during OAuth redirection");
+    }
+  };
+
+  const logoutBsky = async () => {
+    if (sub) await client.revoke(sub);
+  };
+
+  return (
+    <div class="flex flex-col items-center">
+      <Show when={!loginState() && !notice().includes("Loading")}>
+        <form
+          class="flex flex-col items-center"
+          onsubmit={(e) => e.preventDefault()}
+        >
+          <label for="handle">Handle:</label>
+          <input
+            type="text"
+            id="handle"
+            placeholder="user.bsky.social"
+            class="mb-3 mt-1 rounded-md px-2 py-1"
+            onInput={(e) => setLoginInput(e.currentTarget.value)}
+          />
+          <button
+            onclick={() => loginBsky(loginInput())}
+            class="rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-700"
+          >
+            Login
+          </button>
+        </form>
+      </Show>
+      <Show when={loginState() && handle()}>
+        <div class="mb-5">
+          Logged in as {handle()} (
+          <a href="" class="text-red-600" onclick={() => logoutBsky()}>
+            Logout
+          </a>
+          )
+        </div>
+      </Show>
+      <Show when={notice()}>
+        <div class="m-3">{notice()}</div>
+      </Show>
+    </div>
+  );
 };
 
-const logoutBsky = async () => {
-  if (result) await client.revoke(result.session.sub);
+const Fetch: Component = () => {
+  const [progress, setProgress] = createSignal(0);
+  const [followCount, setFollowCount] = createSignal(0);
+  const [notice, setNotice] = createSignal("");
+
+  const fetchHiddenAccounts = async () => {
+    const fetchFollows = async () => {
+      const PAGE_LIMIT = 100;
+      const fetchPage = async (cursor?: any) => {
+        return await agent.com.atproto.repo.listRecords({
+          repo: agent.did!,
+          collection: "app.bsky.graph.follow",
+          limit: PAGE_LIMIT,
+          cursor: cursor,
+        });
+      };
+
+      let res = await fetchPage();
+      let follows = res.data.records;
+
+      while (res.data.cursor && res.data.records.length >= PAGE_LIMIT) {
+        res = await fetchPage(res.data.cursor);
+        follows = follows.concat(res.data.records);
+      }
+
+      return follows;
+    };
+
+    setProgress(0);
+    setNotice("");
+
+    await fetchFollows().then((follows) => {
+      setFollowCount(follows.length);
+      follows.forEach(async (record: any) => {
+        let status: RepoStatus | undefined = undefined;
+        let handle = "";
+
+        try {
+          const res = await agent.getProfile({
+            actor: record.value.subject,
+          });
+
+          handle = res.data.handle;
+          const viewer = res.data.viewer!;
+
+          if (!viewer.followedBy) status = RepoStatus.NONMUTUAL;
+
+          if (viewer.blockedBy) {
+            status =
+              viewer.blocking || viewer.blockingByList ?
+                RepoStatus.BLOCKEDBY | RepoStatus.BLOCKING
+              : RepoStatus.BLOCKEDBY;
+          } else if (res.data.did.includes(agent.did!)) {
+            status = RepoStatus.YOURSELF;
+          } else if (viewer.blocking || viewer.blockingByList) {
+            status = RepoStatus.BLOCKING;
+          }
+        } catch (e: any) {
+          handle = await resolveDid(record.value.subject);
+
+          status =
+            e.message.includes("not found") ? RepoStatus.DELETED
+            : e.message.includes("deactivated") ? RepoStatus.DEACTIVATED
+            : e.message.includes("suspended") ? RepoStatus.SUSPENDED
+            : undefined;
+        }
+
+        const status_label =
+          status == RepoStatus.DELETED ? "Deleted"
+          : status == RepoStatus.DEACTIVATED ? "Deactivated"
+          : status == RepoStatus.SUSPENDED ? "Suspended"
+          : status == RepoStatus.NONMUTUAL ? "Non Mutual"
+          : status == RepoStatus.YOURSELF ? "Literally Yourself"
+          : status == RepoStatus.BLOCKING ? "Blocking"
+          : status == RepoStatus.BLOCKEDBY ? "Blocked by"
+          : RepoStatus.BLOCKEDBY | RepoStatus.BLOCKING ? "Mutual Block"
+          : "";
+
+        if (status !== undefined) {
+          setFollowRecords(followRecords.length, {
+            did: record.value.subject,
+            handle: handle,
+            uri: record.uri,
+            status: status,
+            status_label: status_label,
+            toBeDeleted: false,
+            visible: true,
+          });
+        }
+        setProgress(progress() + 1);
+      });
+    });
+  };
+
+  const unfollow = async () => {
+    const writes = followRecords
+      .filter((record) => record.toBeDeleted)
+      .map((record) => {
+        return {
+          $type: "com.atproto.repo.applyWrites#delete",
+          collection: "app.bsky.graph.follow",
+          rkey: record.uri.split("/").pop(),
+        };
+      });
+
+    const BATCHSIZE = 200;
+    for (let i = 0; i < writes.length; i += BATCHSIZE) {
+      await agent.com.atproto.repo.applyWrites({
+        repo: agent.did!,
+        writes: writes.slice(i, i + BATCHSIZE),
+      });
+    }
+
+    setFollowRecords([]);
+    setProgress(0);
+    setFollowCount(0);
+    setNotice(
+      `Unfollowed ${writes.length} account${writes.length > 1 ? "s" : ""}`,
+    );
+  };
+
+  return (
+    <div class="flex flex-col items-center">
+      <Show when={!followRecords.length}>
+        <button
+          type="button"
+          onclick={() => fetchHiddenAccounts()}
+          class="rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-700"
+        >
+          Preview
+        </button>
+      </Show>
+      <Show when={followRecords.length}>
+        <button
+          type="button"
+          onclick={() => unfollow()}
+          class="rounded bg-green-500 px-4 py-2 font-bold text-white hover:bg-green-700"
+        >
+          Confirm
+        </button>
+      </Show>
+      <Show when={notice()}>
+        <div class="m-3">{notice()}</div>
+      </Show>
+      <Show when={followCount()}>
+        <div class="m-3">
+          Progress: {progress()}/{followCount()}
+        </div>
+      </Show>
+    </div>
+  );
 };
 
 const Follows: Component = () => {
@@ -189,189 +390,6 @@ const Follows: Component = () => {
   );
 };
 
-const Form: Component = () => {
-  const [loginInput, setLoginInput] = createSignal("");
-  const [progress, setProgress] = createSignal(0);
-  const [followCount, setFollowCount] = createSignal(0);
-
-  const fetchHiddenAccounts = async () => {
-    const fetchFollows = async () => {
-      const PAGE_LIMIT = 100;
-      const fetchPage = async (cursor?: any) => {
-        return await agent.com.atproto.repo.listRecords({
-          repo: agent.did!,
-          collection: "app.bsky.graph.follow",
-          limit: PAGE_LIMIT,
-          cursor: cursor,
-        });
-      };
-
-      let res = await fetchPage();
-      let follows = res.data.records;
-
-      while (res.data.cursor && res.data.records.length >= PAGE_LIMIT) {
-        res = await fetchPage(res.data.cursor);
-        follows = follows.concat(res.data.records);
-      }
-
-      return follows;
-    };
-
-    setNotice("");
-    setProgress(0);
-
-    await fetchFollows().then((follows) => {
-      setFollowCount(follows.length);
-      follows.forEach(async (record: any) => {
-        let status: RepoStatus | undefined = undefined;
-        let handle = "";
-
-        try {
-          const res = await agent.getProfile({
-            actor: record.value.subject,
-          });
-
-          handle = res.data.handle;
-          const viewer = res.data.viewer!;
-
-          if (!viewer.followedBy) status = RepoStatus.NONMUTUAL;
-
-          if (viewer.blockedBy) {
-            status =
-              viewer.blocking || viewer.blockingByList ?
-                RepoStatus.BLOCKEDBY | RepoStatus.BLOCKING
-              : RepoStatus.BLOCKEDBY;
-          } else if (res.data.did.includes(agent.did!)) {
-            status = RepoStatus.YOURSELF;
-          } else if (viewer.blocking || viewer.blockingByList) {
-            status = RepoStatus.BLOCKING;
-          }
-        } catch (e: any) {
-          handle = await resolveDid(record.value.subject);
-
-          status =
-            e.message.includes("not found") ? RepoStatus.DELETED
-            : e.message.includes("deactivated") ? RepoStatus.DEACTIVATED
-            : e.message.includes("suspended") ? RepoStatus.SUSPENDED
-            : undefined;
-        }
-
-        const status_label =
-          status == RepoStatus.DELETED ? "Deleted"
-          : status == RepoStatus.DEACTIVATED ? "Deactivated"
-          : status == RepoStatus.SUSPENDED ? "Suspended"
-          : status == RepoStatus.NONMUTUAL ? "Non Mutual"
-          : status == RepoStatus.YOURSELF ? "Literally Yourself"
-          : status == RepoStatus.BLOCKING ? "Blocking"
-          : status == RepoStatus.BLOCKEDBY ? "Blocked by"
-          : RepoStatus.BLOCKEDBY | RepoStatus.BLOCKING ? "Mutual Block"
-          : "";
-
-        if (status !== undefined) {
-          setFollowRecords(followRecords.length, {
-            did: record.value.subject,
-            handle: handle,
-            uri: record.uri,
-            status: status,
-            status_label: status_label,
-            toBeDeleted: false,
-            visible: true,
-          });
-        }
-        setProgress(progress() + 1);
-      });
-    });
-  };
-
-  const unfollow = async () => {
-    const writes = followRecords
-      .filter((record) => record.toBeDeleted)
-      .map((record) => {
-        return {
-          $type: "com.atproto.repo.applyWrites#delete",
-          collection: "app.bsky.graph.follow",
-          rkey: record.uri.split("/").pop(),
-        };
-      });
-
-    const BATCHSIZE = 200;
-    for (let i = 0; i < writes.length; i += BATCHSIZE) {
-      await agent.com.atproto.repo.applyWrites({
-        repo: agent.did!,
-        writes: writes.slice(i, i + BATCHSIZE),
-      });
-    }
-
-    setFollowRecords([]);
-    setProgress(0);
-    setFollowCount(0);
-    setNotice(
-      `Unfollowed ${writes.length} account${writes.length > 1 ? "s" : ""}`,
-    );
-  };
-
-  return (
-    <div class="flex flex-col items-center">
-      <Show when={!loginState()}>
-        <form
-          class="flex flex-col items-center"
-          onsubmit={(e) => e.preventDefault()}
-        >
-          <label for="handle">Handle:</label>
-          <input
-            type="text"
-            id="handle"
-            placeholder="user.bsky.social"
-            class="mb-3 mt-1 rounded-md px-2 py-1"
-            onInput={(e) => setLoginInput(e.currentTarget.value)}
-          />
-          <button
-            onclick={() => loginBsky(loginInput())}
-            class="rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-700"
-          >
-            Login
-          </button>
-        </form>
-      </Show>
-      <Show when={loginState()}>
-        <div class="mb-5">
-          Logged in as {userHandle} (
-          <a href="" class="text-red-600" onclick={() => logoutBsky()}>
-            Logout
-          </a>
-          )
-        </div>
-        <Show when={!followRecords.length}>
-          <button
-            type="button"
-            onclick={() => fetchHiddenAccounts()}
-            class="rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-700"
-          >
-            Preview
-          </button>
-        </Show>
-        <Show when={followRecords.length}>
-          <button
-            type="button"
-            onclick={() => unfollow()}
-            class="rounded bg-green-500 px-4 py-2 font-bold text-white hover:bg-green-700"
-          >
-            Confirm
-          </button>
-        </Show>
-      </Show>
-      <Show when={notice()}>
-        <div class="m-3">{notice()}</div>
-      </Show>
-      <Show when={loginState() && followCount()}>
-        <div class="m-3">
-          Progress: {progress()}/{followCount()}
-        </div>
-      </Show>
-    </div>
-  );
-};
-
 const App: Component = () => {
   return (
     <div class="m-5 flex flex-col items-center">
@@ -402,9 +420,12 @@ const App: Component = () => {
           </a>
         </div>
       </div>
-      <Form />
-      <Show when={loginState() && followRecords.length}>
-        <Follows />
+      <Login />
+      <Show when={loginState()}>
+        <Fetch />
+        <Show when={followRecords.length}>
+          <Follows />
+        </Show>
       </Show>
     </div>
   );
