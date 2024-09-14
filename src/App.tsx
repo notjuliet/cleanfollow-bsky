@@ -213,7 +213,7 @@ const Fetch: Component = () => {
             status: status,
             status_label: status_label,
             toBeDeleted: false,
-            visible: true,
+            visible: status == RepoStatus.NONMUTUAL ? false : true,
           });
         }
         setProgress(progress() + 1);
@@ -317,7 +317,9 @@ const Follows: Component = () => {
                   <input
                     type="checkbox"
                     class="peer sr-only"
-                    checked
+                    checked={
+                      option.status == RepoStatus.NONMUTUAL ? false : true
+                    }
                     onChange={(e) =>
                       editRecords(
                         option.status,
