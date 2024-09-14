@@ -301,7 +301,7 @@ const Follows: Component = () => {
   ];
 
   return (
-    <div class="mt-3 flex flex-col sm:flex-row">
+    <div class="mt-3 flex flex-col sm:w-full sm:flex-row sm:justify-center">
       <div class="sticky top-0 mb-3 mr-5 flex w-full flex-wrap justify-around border-b border-b-gray-400 bg-white pb-3 sm:top-3 sm:mb-0 sm:w-auto sm:flex-col sm:self-start sm:border-none">
         <For each={options}>
           {(option, index) => (
@@ -353,7 +353,7 @@ const Follows: Component = () => {
           )}
         </For>
       </div>
-      <div>
+      <div class="sm:w-1/2">
         <For each={followRecords}>
           {(record, index) => (
             <Show when={record.visible}>
