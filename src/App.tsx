@@ -271,7 +271,7 @@ const Fetch: Component = () => {
       <Show when={notice()}>
         <div class="m-3">{notice()}</div>
       </Show>
-      <Show when={followCount()}>
+      <Show when={followCount() && progress() != followCount()}>
         <div class="m-3">
           Progress: {progress()}/{followCount()}
         </div>
@@ -301,7 +301,7 @@ const Follows: Component = () => {
   ];
 
   return (
-    <div class="mt-3 flex flex-col sm:w-full sm:flex-row sm:justify-center">
+    <div class="mt-6 flex flex-col sm:w-full sm:flex-row sm:justify-center">
       <div class="sticky top-0 mb-3 mr-5 flex w-full flex-wrap justify-around border-b border-b-gray-400 bg-white pb-3 sm:top-3 sm:mb-0 sm:w-auto sm:flex-col sm:self-start sm:border-none">
         <For each={options}>
           {(option, index) => (
