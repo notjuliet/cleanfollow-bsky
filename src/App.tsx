@@ -113,7 +113,7 @@ const Login: Component = () => {
       </Show>
       <Show when={loginState() && handle()}>
         <div class="mb-5">
-          Logged in as {handle()} (
+          Logged in as @{handle()} (
           <a href="" class="text-red-600" onclick={() => logoutBsky()}>
             Logout
           </a>
