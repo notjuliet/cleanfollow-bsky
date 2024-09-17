@@ -1,7 +1,12 @@
 import { createSignal, onMount, For, Show, type Component } from "solid-js";
 import { createStore } from "solid-js/store";
 
-import { Agent } from "@atproto/api";
+import {
+  Agent,
+  AppBskyGraphFollow,
+  ComAtprotoRepoApplyWrites,
+  ComAtprotoRepoListRecords,
+} from "@atproto/api";
 import { BrowserOAuthClient } from "@atproto/oauth-client-browser";
 
 enum RepoStatus {
@@ -135,7 +140,7 @@ const Fetch: Component = () => {
   const fetchHiddenAccounts = async () => {
     const fetchFollows = async () => {
       const PAGE_LIMIT = 100;
-      const fetchPage = async (cursor?: any) => {
+      const fetchPage = async (cursor?: string) => {
         return await agent.com.atproto.repo.listRecords({
           repo: agent.did!,
           collection: "app.bsky.graph.follow",
@@ -160,13 +165,14 @@ const Fetch: Component = () => {
 
     await fetchFollows().then((follows) => {
       setFollowCount(follows.length);
-      follows.forEach(async (record: any) => {
+      follows.forEach(async (record: ComAtprotoRepoListRecords.Record) => {
         let status: RepoStatus | undefined = undefined;
+        const follow = record.value as AppBskyGraphFollow.Record;
         let handle = "";
 
         try {
           const res = await agent.getProfile({
-            actor: record.value.subject,
+            actor: follow.subject,
           });
 
           handle = res.data.handle;
@@ -185,7 +191,7 @@ const Fetch: Component = () => {
             status = RepoStatus.BLOCKING;
           }
         } catch (e: any) {
-          handle = await resolveDid(record.value.subject);
+          handle = await resolveDid(follow.subject);
 
           status =
             e.message.includes("not found") ? RepoStatus.DELETED
@@ -207,7 +213,7 @@ const Fetch: Component = () => {
 
         if (status !== undefined) {
           setFollowRecords(followRecords.length, {
-            did: record.value.subject,
+            did: follow.subject,
             handle: handle,
             uri: record.uri,
             status: status,
@@ -229,7 +235,7 @@ const Fetch: Component = () => {
           $type: "com.atproto.repo.applyWrites#delete",
           collection: "app.bsky.graph.follow",
           rkey: record.uri.split("/").pop(),
-        };
+        } as ComAtprotoRepoApplyWrites.Delete;
       });
 
     const BATCHSIZE = 200;
