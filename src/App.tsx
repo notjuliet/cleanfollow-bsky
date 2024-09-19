@@ -3,28 +3,14 @@ import { createStore } from "solid-js/store";
 
 import {
   Agent,
-  AppBskyGraphFollow,
   ComAtprotoRepoApplyWrites,
   ComAtprotoRepoListRecords,
 } from "@atproto/api";
 import { BrowserOAuthClient } from "@atproto/oauth-client-browser";
 
-enum RepoStatus {
-  BLOCKEDBY = 1 << 0,
-  BLOCKING = 1 << 1,
-  DELETED = 1 << 2,
-  DEACTIVATED = 1 << 3,
-  SUSPENDED = 1 << 4,
-  YOURSELF = 1 << 5,
-  NONMUTUAL = 1 << 6,
-}
-
 type FollowRecord = {
-  did: string;
-  handle: string;
   uri: string;
-  status: RepoStatus;
-  status_label: string;
+  record: string;
   toBeDeleted: boolean;
   visible: boolean;
 };
@@ -59,7 +45,8 @@ const Login: Component = () => {
   onMount(async () => {
     setNotice("Loading...");
     client = await BrowserOAuthClient.load({
-      clientId: "https://cleanfollow-bsky.pages.dev/client-metadata.json",
+      clientId:
+        "https://repocleaner.cleanfollow-bsky.pages.dev/client-metadata.json",
       handleResolver: "https://boletus.us-west.host.bsky.network",
     });
 
@@ -135,6 +122,7 @@ const Login: Component = () => {
 const Fetch: Component = () => {
   const [progress, setProgress] = createSignal(0);
   const [followCount, setFollowCount] = createSignal(0);
+  const [collection, setCollection] = createSignal("");
   const [notice, setNotice] = createSignal("");
 
   const fetchHiddenAccounts = async () => {
@@ -143,7 +131,7 @@ const Fetch: Component = () => {
       const fetchPage = async (cursor?: string) => {
         return await agent.com.atproto.repo.listRecords({
           repo: agent.did!,
-          collection: "app.bsky.graph.follow",
+          collection: collection(),
           limit: PAGE_LIMIT,
           cursor: cursor,
         });
@@ -166,62 +154,12 @@ const Fetch: Component = () => {
     await fetchFollows().then((follows) => {
       setFollowCount(follows.length);
       follows.forEach(async (record: ComAtprotoRepoListRecords.Record) => {
-        let status: RepoStatus | undefined = undefined;
-        const follow = record.value as AppBskyGraphFollow.Record;
-        let handle = "";
-
-        try {
-          const res = await agent.getProfile({
-            actor: follow.subject,
-          });
-
-          handle = res.data.handle;
-          const viewer = res.data.viewer!;
-
-          if (!viewer.followedBy) status = RepoStatus.NONMUTUAL;
-
-          if (viewer.blockedBy) {
-            status =
-              viewer.blocking || viewer.blockingByList ?
-                RepoStatus.BLOCKEDBY | RepoStatus.BLOCKING
-              : RepoStatus.BLOCKEDBY;
-          } else if (res.data.did.includes(agent.did!)) {
-            status = RepoStatus.YOURSELF;
-          } else if (viewer.blocking || viewer.blockingByList) {
-            status = RepoStatus.BLOCKING;
-          }
-        } catch (e: any) {
-          handle = await resolveDid(follow.subject);
-
-          status =
-            e.message.includes("not found") ? RepoStatus.DELETED
-            : e.message.includes("deactivated") ? RepoStatus.DEACTIVATED
-            : e.message.includes("suspended") ? RepoStatus.SUSPENDED
-            : undefined;
-        }
-
-        const status_label =
-          status == RepoStatus.DELETED ? "Deleted"
-          : status == RepoStatus.DEACTIVATED ? "Deactivated"
-          : status == RepoStatus.SUSPENDED ? "Suspended"
-          : status == RepoStatus.NONMUTUAL ? "Non Mutual"
-          : status == RepoStatus.YOURSELF ? "Literally Yourself"
-          : status == RepoStatus.BLOCKING ? "Blocking"
-          : status == RepoStatus.BLOCKEDBY ? "Blocked by"
-          : RepoStatus.BLOCKEDBY | RepoStatus.BLOCKING ? "Mutual Block"
-          : "";
-
-        if (status !== undefined) {
-          setFollowRecords(followRecords.length, {
-            did: follow.subject,
-            handle: handle,
-            uri: record.uri,
-            status: status,
-            status_label: status_label,
-            toBeDeleted: false,
-            visible: status == RepoStatus.NONMUTUAL ? false : true,
-          });
-        }
+        setFollowRecords(followRecords.length, {
+          record: JSON.stringify(record.value, null, 2),
+          uri: record.uri,
+          toBeDeleted: false,
+          visible: true,
+        });
         setProgress(progress() + 1);
       });
     });
@@ -233,7 +171,7 @@ const Fetch: Component = () => {
       .map((record) => {
         return {
           $type: "com.atproto.repo.applyWrites#delete",
-          collection: "app.bsky.graph.follow",
+          collection: collection(),
           rkey: record.uri.split("/").pop(),
         } as ComAtprotoRepoApplyWrites.Delete;
       });
@@ -249,21 +187,31 @@ const Fetch: Component = () => {
     setFollowRecords([]);
     setProgress(0);
     setFollowCount(0);
-    setNotice(
-      `Unfollowed ${writes.length} account${writes.length > 1 ? "s" : ""}`,
-    );
+    setNotice(`Deleted ${writes.length} record${writes.length > 1 ? "s" : ""}`);
   };
 
   return (
     <div class="flex flex-col items-center">
       <Show when={!followRecords.length}>
-        <button
-          type="button"
-          onclick={() => fetchHiddenAccounts()}
-          class="rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-700"
+        <form
+          class="flex flex-col items-center"
+          onsubmit={(e) => e.preventDefault()}
         >
-          Preview
-        </button>
+          <label for="collection">Collection:</label>
+          <input
+            type="text"
+            id="handle"
+            placeholder="app.bsky.feed.post"
+            class="mb-3 mt-1 rounded-md px-2 py-1"
+            onInput={(e) => setCollection(e.currentTarget.value)}
+          />
+          <button
+            onclick={() => fetchHiddenAccounts()}
+            class="rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-700"
+          >
+            Preview
+          </button>
+        </form>
       </Show>
       <Show when={followRecords.length}>
         <button
@@ -287,112 +235,36 @@ const Fetch: Component = () => {
 };
 
 const Follows: Component = () => {
-  function editRecords(
-    status: RepoStatus,
-    field: keyof FollowRecord,
-    value: boolean,
-  ) {
-    followRecords.forEach((record, index) => {
-      if (record.status & status) setFollowRecords(index, field, value);
-    });
-  }
-
-  const options: { status: RepoStatus; label: string }[] = [
-    { status: RepoStatus.DELETED, label: "Deleted" },
-    { status: RepoStatus.DEACTIVATED, label: "Deactivated" },
-    { status: RepoStatus.SUSPENDED, label: "Suspended" },
-    { status: RepoStatus.BLOCKEDBY, label: "Blocked By" },
-    { status: RepoStatus.BLOCKING, label: "Blocking" },
-    { status: RepoStatus.NONMUTUAL, label: "Non Mutual" },
-  ];
-
   return (
-    <div class="mt-6 flex flex-col sm:w-full sm:flex-row sm:justify-center">
-      <div class="sticky top-0 mb-3 mr-5 flex w-full flex-wrap justify-around border-b border-b-gray-400 bg-white pb-3 sm:top-3 sm:mb-0 sm:w-auto sm:flex-col sm:self-start sm:border-none">
-        <For each={options}>
-          {(option, index) => (
-            <div
-              classList={{
-                "sm:pb-2 min-w-36 sm:mb-2 mt-3 sm:mt-0": true,
-                "sm:border-b sm:border-b-gray-300":
-                  index() < options.length - 1,
-              }}
-            >
-              <div>
-                <label class="mb-2 mt-1 inline-flex cursor-pointer items-center">
-                  <input
-                    type="checkbox"
-                    class="peer sr-only"
-                    checked={
-                      option.status == RepoStatus.NONMUTUAL ? false : true
-                    }
-                    onChange={(e) =>
-                      editRecords(
-                        option.status,
-                        "visible",
-                        e.currentTarget.checked,
-                      )
-                    }
-                  />
-                  <span class="peer relative h-5 w-9 rounded-full bg-gray-200 after:absolute after:start-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-blue-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:border-gray-600 dark:bg-gray-700 dark:peer-focus:ring-blue-800 rtl:peer-checked:after:-translate-x-full"></span>
-                  <span class="ms-3 select-none dark:text-gray-300">
-                    {option.label}
-                  </span>
-                </label>
-              </div>
-              <div class="flex items-center">
+    <div class="mt-6">
+      <For each={followRecords}>
+        {(record, index) => (
+          <Show when={record.visible}>
+            <div class="mb-2 flex items-center border-b pb-2">
+              <div class="mr-4">
                 <input
                   type="checkbox"
-                  id={option.label}
+                  id={"record" + index()}
                   class="h-4 w-4 rounded"
+                  checked={record.toBeDeleted}
                   onChange={(e) =>
-                    editRecords(
-                      option.status,
+                    setFollowRecords(
+                      index(),
                       "toBeDeleted",
                       e.currentTarget.checked,
                     )
                   }
                 />
-                <label for={option.label} class="ml-2 select-none">
-                  Select All
+              </div>
+              <div classList={{ "bg-red-300": record.toBeDeleted }}>
+                <label for={"record" + index()} class="flex flex-col">
+                  <pre class="text-wrap break-all">{record.record}</pre>
                 </label>
               </div>
             </div>
-          )}
-        </For>
-      </div>
-      <div class="sm:min-w-96">
-        <For each={followRecords}>
-          {(record, index) => (
-            <Show when={record.visible}>
-              <div class="mb-2 flex items-center border-b pb-2">
-                <div class="mr-4">
-                  <input
-                    type="checkbox"
-                    id={"record" + index()}
-                    class="h-4 w-4 rounded"
-                    checked={record.toBeDeleted}
-                    onChange={(e) =>
-                      setFollowRecords(
-                        index(),
-                        "toBeDeleted",
-                        e.currentTarget.checked,
-                      )
-                    }
-                  />
-                </div>
-                <div>
-                  <label for={"record" + index()} class="flex flex-col">
-                    <span>@{record.handle}</span>
-                    <span>{record.did}</span>
-                    <span>{record.status_label}</span>
-                  </label>
-                </div>
-              </div>
-            </Show>
-          )}
-        </For>
-      </div>
+          </Show>
+        )}
+      </For>
     </div>
   );
 };
@@ -400,33 +272,7 @@ const Follows: Component = () => {
 const App: Component = () => {
   return (
     <div class="m-5 flex flex-col items-center">
-      <h1 class="mb-5 text-2xl">cleanfollow-bsky</h1>
-      <div class="mb-3 text-center">
-        <p>Unfollow blocked, deleted, suspended, and deactivated accounts</p>
-        <p>By default, every account will be unselected</p>
-        <div>
-          <a
-            class="text-blue-600 hover:underline"
-            href="https://github.com/notjuliet/cleanfollow-bsky"
-          >
-            Source Code
-          </a>
-          <span> | </span>
-          <a
-            class="text-blue-600 hover:underline"
-            href="https://bsky.app/profile/adorable.mom"
-          >
-            Bluesky
-          </a>
-          <span> | </span>
-          <a
-            class="text-blue-600 hover:underline"
-            href="https://mary-ext.codeberg.page/bluesky-quiet-posters/"
-          >
-            Quiet Posters
-          </a>
-        </div>
-      </div>
+      <h1 class="mb-5 text-2xl">Repo Cleaner</h1>
       <Login />
       <Show when={loginState()}>
         <Fetch />

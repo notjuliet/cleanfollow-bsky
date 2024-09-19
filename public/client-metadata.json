@@ -1,8 +1,8 @@
 {
-  "client_id": "https://cleanfollow-bsky.pages.dev/client-metadata.json",
-  "client_name": "cleanfollow-bsky",
-  "client_uri": "https://cleanfollow-bsky.pages.dev",
-  "redirect_uris": ["https://cleanfollow-bsky.pages.dev/"],
+  "client_id": "https://repocleaner.cleanfollow-bsky.pages.dev/client-metadata.json",
+  "client_name": "Repo Cleaner",
+  "client_uri": "https://repocleaner.cleanfollow-bsky.pages.dev",
+  "redirect_uris": ["https://repocleaner.cleanfollow-bsky.pages.dev/"],
   "scope": "atproto transition:generic",
   "grant_types": ["authorization_code", "refresh_token"],
   "response_types": ["code"],
