@@ -43,13 +43,9 @@ const Login: Component = () => {
 
   onMount(async () => {
     setNotice("Loading...");
-    //client = await BrowserOAuthClient.load({
-    //  clientId:
-    //    "https://repocleaner.cleanfollow-bsky.pages.dev/client-metadata.json",
-    //  handleResolver: "https://boletus.us-west.host.bsky.network",
-    //});
-    client = new BrowserOAuthClient({
-      clientMetadata: undefined,
+    client = await BrowserOAuthClient.load({
+      clientId:
+        "https://repocleaner.cleanfollow-bsky.pages.dev/client-metadata.json",
       handleResolver: "https://boletus.us-west.host.bsky.network",
     });
 
