@@ -11,10 +11,10 @@ import { BrowserOAuthClient } from "@atproto/oauth-client-browser";
 type AtpRecord = {
   uri: string;
   record: string;
-  toBeDeleted: boolean;
+  toDelete: boolean;
 };
 
-const [records, setRecords] = createStore<AtpRecord[]>([]);
+const [recordList, setRecordList] = createStore<AtpRecord[]>([]);
 const [loginState, setLoginState] = createSignal(false);
 let agent: Agent;
 
@@ -43,9 +43,13 @@ const Login: Component = () => {
 
   onMount(async () => {
     setNotice("Loading...");
-    client = await BrowserOAuthClient.load({
-      clientId:
-        "https://repocleaner.cleanfollow-bsky.pages.dev/client-metadata.json",
+    //client = await BrowserOAuthClient.load({
+    //  clientId:
+    //    "https://repocleaner.cleanfollow-bsky.pages.dev/client-metadata.json",
+    //  handleResolver: "https://boletus.us-west.host.bsky.network",
+    //});
+    client = new BrowserOAuthClient({
+      clientMetadata: undefined,
       handleResolver: "https://boletus.us-west.host.bsky.network",
     });
 
@@ -149,18 +153,18 @@ const Fetch: Component = () => {
 
     await fetchRecords().then((records) => {
       records.forEach((record: ComAtprotoRepoListRecords.Record) => {
-        setRecords(records.length, {
+        setRecordList(recordList.length, {
           record: JSON.stringify(record.value, null, 2),
           uri: record.uri,
-          toBeDeleted: false,
+          toDelete: false,
         });
       });
     });
   };
 
   const deleteRecords = async () => {
-    const writes = records
-      .filter((record) => record.toBeDeleted)
+    const writes = recordList
+      .filter((record) => record.toDelete)
       .map((record) => {
         return {
           $type: "com.atproto.repo.applyWrites#delete",
@@ -177,13 +181,13 @@ const Fetch: Component = () => {
       });
     }
 
-    setRecords([]);
+    setRecordList([]);
     setNotice(`Deleted ${writes.length} record${writes.length > 1 ? "s" : ""}`);
   };
 
   return (
     <div class="flex flex-col items-center">
-      <Show when={!records.length}>
+      <Show when={!recordList.length}>
         <form
           class="flex flex-col items-center"
           onsubmit={(e) => e.preventDefault()}
@@ -204,7 +208,7 @@ const Fetch: Component = () => {
           </button>
         </form>
       </Show>
-      <Show when={records.length}>
+      <Show when={recordList.length}>
         <button
           type="button"
           onclick={() => deleteRecords()}
@@ -223,7 +227,7 @@ const Fetch: Component = () => {
 const Records: Component = () => {
   return (
     <div class="mt-6">
-      <For each={records}>
+      <For each={recordList}>
         {(record, index) => (
           <div class="mb-2 flex items-center border-b pb-2">
             <div class="mr-4">
@@ -231,13 +235,13 @@ const Records: Component = () => {
                 type="checkbox"
                 id={"record" + index()}
                 class="h-4 w-4 rounded"
-                checked={record.toBeDeleted}
+                checked={record.toDelete}
                 onChange={(e) =>
-                  setRecords(index(), "toBeDeleted", e.currentTarget.checked)
+                  setRecordList(index(), "toDelete", e.currentTarget.checked)
                 }
               />
             </div>
-            <div classList={{ "bg-red-300": record.toBeDeleted }}>
+            <div classList={{ "bg-red-300": record.toDelete }}>
               <label for={"record" + index()} class="flex flex-col">
                 <pre class="text-wrap break-all">{record.record}</pre>
               </label>
@@ -256,7 +260,7 @@ const App: Component = () => {
       <Login />
       <Show when={loginState()}>
         <Fetch />
-        <Show when={records.length}>
+        <Show when={recordList.length}>
           <Records />
         </Show>
       </Show>
