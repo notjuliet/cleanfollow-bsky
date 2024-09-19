@@ -381,7 +381,7 @@ const Follows: Component = () => {
                     }
                   />
                 </div>
-                <div>
+                <div classList={{ "bg-red-300": record.toBeDeleted }}>
                   <label for={"record" + index()} class="flex flex-col">
                     <span>@{record.handle}</span>
                     <span>{record.did}</span>
