@@ -43,9 +43,13 @@ const Login: Component = () => {
 
   onMount(async () => {
     setNotice("Loading...");
-    client = await BrowserOAuthClient.load({
-      clientId:
-        "https://repocleaner.cleanfollow-bsky.pages.dev/client-metadata.json",
+    //client = await BrowserOAuthClient.load({
+    //  clientId:
+    //    "https://repocleaner.cleanfollow-bsky.pages.dev/client-metadata.json",
+    //  handleResolver: "https://boletus.us-west.host.bsky.network",
+    //});
+    client = new BrowserOAuthClient({
+      clientMetadata: undefined,
       handleResolver: "https://boletus.us-west.host.bsky.network",
     });
 
@@ -221,30 +225,110 @@ const Fetch: Component = () => {
 };
 
 const Records: Component = () => {
+  const [subtext, setSubtext] = createSignal("");
+  const [deleteToggle, setDeleteToggle] = createSignal(false);
+
+  function editRecords() {
+    recordList.forEach((record, index) => {
+      if (record.record.includes(subtext()))
+        setRecordList(index, "toDelete", true);
+    });
+  }
+
   return (
-    <div class="mt-6">
-      <For each={recordList}>
-        {(record, index) => (
-          <div class="mb-2 flex items-center border-b pb-2">
-            <div class="mr-4">
-              <input
-                type="checkbox"
-                id={"record" + index()}
-                class="h-4 w-4 rounded"
-                checked={record.toDelete}
-                onChange={(e) =>
-                  setRecordList(index(), "toDelete", e.currentTarget.checked)
-                }
-              />
-            </div>
-            <div classList={{ "bg-red-300": record.toDelete }}>
-              <label for={"record" + index()} class="flex flex-col">
-                <pre class="text-wrap break-all">{record.record}</pre>
-              </label>
-            </div>
+    <div class="mt-6 flex flex-col sm:w-2/3 sm:flex-row sm:justify-center">
+      <div class="sticky top-0 mb-3 mr-5 flex w-full flex-wrap justify-around border-b border-b-gray-400 bg-white pb-3 sm:top-3 sm:mb-0 sm:w-auto sm:flex-col sm:self-start sm:border-none">
+        <div class="mt-3 min-w-36 sm:mb-2 sm:mt-0 sm:border-b sm:border-b-gray-300 sm:pb-2">
+          <div class="flex items-center">
+            <button
+              onclick={() =>
+                setRecordList(
+                  { from: 0, to: recordList.length - 1 },
+                  "toDelete",
+                  true,
+                )
+              }
+              class="rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-700"
+            >
+              Select All
+            </button>
+            <button
+              onclick={() =>
+                setRecordList(
+                  { from: 0, to: recordList.length - 1 },
+                  "toDelete",
+                  false,
+                )
+              }
+              class="rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-700"
+            >
+              Unselect All
+            </button>
           </div>
-        )}
-      </For>
+        </div>
+        <div class="mt-3 min-w-36 sm:mb-2 sm:mt-0 sm:border-b sm:border-b-gray-300 sm:pb-2">
+          <form
+            onsubmit={(e) => {
+              e.preventDefault();
+              editRecords();
+            }}
+          >
+            <label for="subtext" class="ml-2 select-none">
+              Subtext:
+            </label>
+            <input
+              type="text"
+              id="subtext"
+              placeholder='"$type": "app.bsky.embed.images"'
+              class="mb-3 mt-1 rounded-md px-2 py-1"
+              onChange={(e) => setSubtext(e.currentTarget.value)}
+            />
+          </form>
+        </div>
+        <div>
+          <label class="mb-2 mt-1 inline-flex cursor-pointer items-center">
+            <input
+              type="checkbox"
+              class="peer sr-only"
+              onChange={(e) => setDeleteToggle(e.currentTarget.checked)}
+            />
+            <span class="peer relative h-5 w-9 rounded-full bg-gray-200 after:absolute after:start-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-blue-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:border-gray-600 dark:bg-gray-700 dark:peer-focus:ring-blue-800 rtl:peer-checked:after:-translate-x-full"></span>
+            <span class="ms-3 select-none dark:text-gray-300">Selected</span>
+          </label>
+        </div>
+      </div>
+      <div class="sm:min-w-96">
+        <For each={recordList}>
+          {(record, index) => (
+            <Show when={deleteToggle() ? record.toDelete : true}>
+              <div class="mb-2 flex items-center border-b pb-2">
+                <div class="mr-4">
+                  <input
+                    type="checkbox"
+                    id={"record" + index()}
+                    class="h-4 w-4 rounded"
+                    checked={record.toDelete}
+                    onChange={(e) =>
+                      setRecordList(
+                        index(),
+                        "toDelete",
+                        e.currentTarget.checked,
+                      )
+                    }
+                  />
+                </div>
+                <div classList={{ "bg-red-300": record.toDelete }}>
+                  <label for={"record" + index()} class="flex flex-col">
+                    <pre class="text-wrap break-all text-xs">
+                      {record.record}
+                    </pre>
+                  </label>
+                </div>
+              </div>
+            </Show>
+          )}
+        </For>
+      </div>
     </div>
   );
 };
