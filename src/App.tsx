@@ -8,14 +8,14 @@ import {
 } from "@atproto/api";
 import { BrowserOAuthClient } from "@atproto/oauth-client-browser";
 
-type FollowRecord = {
+type Record = {
   uri: string;
   record: string;
   toBeDeleted: boolean;
   visible: boolean;
 };
 
-const [followRecords, setFollowRecords] = createStore<FollowRecord[]>([]);
+const [records, setRecords] = createStore<Record[]>([]);
 const [loginState, setLoginState] = createSignal(false);
 let agent: Agent;
 
@@ -121,12 +121,12 @@ const Login: Component = () => {
 
 const Fetch: Component = () => {
   const [progress, setProgress] = createSignal(0);
-  const [followCount, setFollowCount] = createSignal(0);
+  const [recordCount, setRecordCount] = createSignal(0);
   const [collection, setCollection] = createSignal("");
   const [notice, setNotice] = createSignal("");
 
-  const fetchHiddenAccounts = async () => {
-    const fetchFollows = async () => {
+  const fetchRecords = async () => {
+    const fetchRecords = async () => {
       const PAGE_LIMIT = 100;
       const fetchPage = async (cursor?: string) => {
         return await agent.com.atproto.repo.listRecords({
@@ -138,23 +138,23 @@ const Fetch: Component = () => {
       };
 
       let res = await fetchPage();
-      let follows = res.data.records;
+      let records = res.data.records;
 
       while (res.data.cursor && res.data.records.length >= PAGE_LIMIT) {
         res = await fetchPage(res.data.cursor);
-        follows = follows.concat(res.data.records);
+        records = records.concat(res.data.records);
       }
 
-      return follows;
+      return records;
     };
 
     setProgress(0);
     setNotice("");
 
-    await fetchFollows().then((follows) => {
-      setFollowCount(follows.length);
-      follows.forEach(async (record: ComAtprotoRepoListRecords.Record) => {
-        setFollowRecords(followRecords.length, {
+    await fetchRecords().then((records) => {
+      setRecordCount(records.length);
+      records.forEach(async (record: ComAtprotoRepoListRecords.Record) => {
+        setRecords(records.length, {
           record: JSON.stringify(record.value, null, 2),
           uri: record.uri,
           toBeDeleted: false,
@@ -165,8 +165,8 @@ const Fetch: Component = () => {
     });
   };
 
-  const unfollow = async () => {
-    const writes = followRecords
+  const deleteRecords = async () => {
+    const writes = records
       .filter((record) => record.toBeDeleted)
       .map((record) => {
         return {
@@ -184,15 +184,15 @@ const Fetch: Component = () => {
       });
     }
 
-    setFollowRecords([]);
+    setRecords([]);
     setProgress(0);
-    setFollowCount(0);
+    setRecordCount(0);
     setNotice(`Deleted ${writes.length} record${writes.length > 1 ? "s" : ""}`);
   };
 
   return (
     <div class="flex flex-col items-center">
-      <Show when={!followRecords.length}>
+      <Show when={!records.length}>
         <form
           class="flex flex-col items-center"
           onsubmit={(e) => e.preventDefault()}
@@ -206,17 +206,17 @@ const Fetch: Component = () => {
             onInput={(e) => setCollection(e.currentTarget.value)}
           />
           <button
-            onclick={() => fetchHiddenAccounts()}
+            onclick={() => fetchRecords()}
             class="rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-700"
           >
             Preview
           </button>
         </form>
       </Show>
-      <Show when={followRecords.length}>
+      <Show when={records.length}>
         <button
           type="button"
-          onclick={() => unfollow()}
+          onclick={() => deleteRecords()}
           class="rounded bg-green-500 px-4 py-2 font-bold text-white hover:bg-green-700"
         >
           Confirm
@@ -225,19 +225,19 @@ const Fetch: Component = () => {
       <Show when={notice()}>
         <div class="m-3">{notice()}</div>
       </Show>
-      <Show when={followCount() && progress() != followCount()}>
+      <Show when={recordCount() && progress() != recordCount()}>
         <div class="m-3">
-          Progress: {progress()}/{followCount()}
+          Progress: {progress()}/{recordCount()}
         </div>
       </Show>
     </div>
   );
 };
 
-const Follows: Component = () => {
+const Records: Component = () => {
   return (
     <div class="mt-6">
-      <For each={followRecords}>
+      <For each={records}>
         {(record, index) => (
           <Show when={record.visible}>
             <div class="mb-2 flex items-center border-b pb-2">
@@ -248,11 +248,7 @@ const Follows: Component = () => {
                   class="h-4 w-4 rounded"
                   checked={record.toBeDeleted}
                   onChange={(e) =>
-                    setFollowRecords(
-                      index(),
-                      "toBeDeleted",
-                      e.currentTarget.checked,
-                    )
+                    setRecords(index(), "toBeDeleted", e.currentTarget.checked)
                   }
                 />
               </div>
@@ -276,8 +272,8 @@ const App: Component = () => {
       <Login />
       <Show when={loginState()}>
         <Fetch />
-        <Show when={followRecords.length}>
-          <Follows />
+        <Show when={records.length}>
+          <Records />
         </Show>
       </Show>
     </div>
