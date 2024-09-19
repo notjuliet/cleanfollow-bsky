@@ -1,7 +1,7 @@
 {
-  "name": "cleanfollow-bsky",
+  "name": "Repo Cleaner",
   "version": "0.0.0",
-  "description": "unfollows deleted, deactivated, and blocked bluesky accounts",
+  "description": "Delete records from your AtProto repo",
   "type": "module",
   "scripts": {
     "start": "vite",
