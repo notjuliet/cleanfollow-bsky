@@ -125,7 +125,7 @@ const Fetch: Component = () => {
   const [collection, setCollection] = createSignal("");
   const [notice, setNotice] = createSignal("");
 
-  const fetchRecords = async () => {
+  const fetch = async () => {
     const fetchRecords = async () => {
       const PAGE_LIMIT = 100;
       const fetchPage = async (cursor?: string) => {
@@ -206,7 +206,7 @@ const Fetch: Component = () => {
             onInput={(e) => setCollection(e.currentTarget.value)}
           />
           <button
-            onclick={() => fetchRecords()}
+            onclick={() => fetch()}
             class="rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-700"
           >
             Preview
