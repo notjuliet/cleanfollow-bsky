@@ -12,7 +12,6 @@ type AtpRecord = {
   uri: string;
   record: string;
   toBeDeleted: boolean;
-  visible: boolean;
 };
 
 const [records, setRecords] = createStore<AtpRecord[]>([]);
@@ -158,7 +157,6 @@ const Fetch: Component = () => {
           record: JSON.stringify(record.value, null, 2),
           uri: record.uri,
           toBeDeleted: false,
-          visible: true,
         });
         setProgress(progress() + 1);
       });
@@ -239,26 +237,24 @@ const Records: Component = () => {
     <div class="mt-6">
       <For each={records}>
         {(record, index) => (
-          <Show when={record.visible}>
-            <div class="mb-2 flex items-center border-b pb-2">
-              <div class="mr-4">
-                <input
-                  type="checkbox"
-                  id={"record" + index()}
-                  class="h-4 w-4 rounded"
-                  checked={record.toBeDeleted}
-                  onChange={(e) =>
-                    setRecords(index(), "toBeDeleted", e.currentTarget.checked)
-                  }
-                />
-              </div>
-              <div classList={{ "bg-red-300": record.toBeDeleted }}>
-                <label for={"record" + index()} class="flex flex-col">
-                  <pre class="text-wrap break-all">{record.record}</pre>
-                </label>
-              </div>
+          <div class="mb-2 flex items-center border-b pb-2">
+            <div class="mr-4">
+              <input
+                type="checkbox"
+                id={"record" + index()}
+                class="h-4 w-4 rounded"
+                checked={record.toBeDeleted}
+                onChange={(e) =>
+                  setRecords(index(), "toBeDeleted", e.currentTarget.checked)
+                }
+              />
             </div>
-          </Show>
+            <div classList={{ "bg-red-300": record.toBeDeleted }}>
+              <label for={"record" + index()} class="flex flex-col">
+                <pre class="text-wrap break-all">{record.record}</pre>
+              </label>
+            </div>
+          </div>
         )}
       </For>
     </div>
