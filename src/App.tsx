@@ -119,8 +119,6 @@ const Login: Component = () => {
 };
 
 const Fetch: Component = () => {
-  const [progress, setProgress] = createSignal(0);
-  const [recordCount, setRecordCount] = createSignal(0);
   const [collection, setCollection] = createSignal("");
   const [notice, setNotice] = createSignal("");
 
@@ -147,18 +145,15 @@ const Fetch: Component = () => {
       return records;
     };
 
-    setProgress(0);
     setNotice("");
 
     await fetchRecords().then((records) => {
-      setRecordCount(records.length);
-      records.forEach(async (record: ComAtprotoRepoListRecords.Record) => {
+      records.forEach((record: ComAtprotoRepoListRecords.Record) => {
         setRecords(records.length, {
           record: JSON.stringify(record.value, null, 2),
           uri: record.uri,
           toBeDeleted: false,
         });
-        setProgress(progress() + 1);
       });
     });
   };
@@ -183,8 +178,6 @@ const Fetch: Component = () => {
     }
 
     setRecords([]);
-    setProgress(0);
-    setRecordCount(0);
     setNotice(`Deleted ${writes.length} record${writes.length > 1 ? "s" : ""}`);
   };
 
@@ -222,11 +215,6 @@ const Fetch: Component = () => {
       </Show>
       <Show when={notice()}>
         <div class="m-3">{notice()}</div>
-      </Show>
-      <Show when={recordCount() && progress() != recordCount()}>
-        <div class="m-3">
-          Progress: {progress()}/{recordCount()}
-        </div>
       </Show>
     </div>
   );
