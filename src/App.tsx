@@ -8,14 +8,14 @@ import {
 } from "@atproto/api";
 import { BrowserOAuthClient } from "@atproto/oauth-client-browser";
 
-type Record = {
+type AtpRecord = {
   uri: string;
   record: string;
   toBeDeleted: boolean;
   visible: boolean;
 };
 
-const [records, setRecords] = createStore<Record[]>([]);
+const [records, setRecords] = createStore<AtpRecord[]>([]);
 const [loginState, setLoginState] = createSignal(false);
 let agent: Agent;
 
