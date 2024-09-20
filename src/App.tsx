@@ -1,4 +1,11 @@
-import { createSignal, onMount, For, Show, type Component } from "solid-js";
+import {
+  createSignal,
+  onMount,
+  For,
+  Show,
+  type Component,
+  createEffect,
+} from "solid-js";
 import { createStore } from "solid-js/store";
 
 import {
@@ -25,12 +32,13 @@ type FollowRecord = {
   uri: string;
   status: RepoStatus;
   status_label: string;
-  toBeDeleted: boolean;
+  toDelete: boolean;
   visible: boolean;
 };
 
 const [followRecords, setFollowRecords] = createStore<FollowRecord[]>([]);
 const [loginState, setLoginState] = createSignal(false);
+const [fetchState, setFetchState] = createSignal(false);
 let agent: Agent;
 
 const resolveDid = async (did: string) => {
@@ -218,18 +226,19 @@ const Fetch: Component = () => {
             uri: record.uri,
             status: status,
             status_label: status_label,
-            toBeDeleted: false,
+            toDelete: false,
             visible: status == RepoStatus.NONMUTUAL ? false : true,
           });
         }
         setProgress(progress() + 1);
+        if (progress() == followCount()) setFetchState(true);
       });
     });
   };
 
   const unfollow = async () => {
     const writes = followRecords
-      .filter((record) => record.toBeDeleted)
+      .filter((record) => record.toDelete)
       .map((record) => {
         return {
           $type: "com.atproto.repo.applyWrites#delete",
@@ -247,6 +256,7 @@ const Fetch: Component = () => {
     }
 
     setFollowRecords([]);
+    setFetchState(false);
     setProgress(0);
     setFollowCount(0);
     setNotice(
@@ -287,14 +297,25 @@ const Fetch: Component = () => {
 };
 
 const Follows: Component = () => {
+  const [selectedCount, setSelectedCount] = createSignal(0);
+
+  createEffect(() => {
+    setSelectedCount(followRecords.filter((record) => record.toDelete).length);
+  });
+
   function editRecords(
     status: RepoStatus,
     field: keyof FollowRecord,
     value: boolean,
   ) {
-    followRecords.forEach((record, index) => {
-      if (record.status & status) setFollowRecords(index, field, value);
+    const range = followRecords.map((record, index) => {
+      if (record.status & status) return index;
     });
+    setFollowRecords(
+      range.filter((i) => i !== undefined),
+      field,
+      value,
+    );
   }
 
   const options: { status: RepoStatus; label: string }[] = [
@@ -348,7 +369,7 @@ const Follows: Component = () => {
                   onChange={(e) =>
                     editRecords(
                       option.status,
-                      "toBeDeleted",
+                      "toDelete",
                       e.currentTarget.checked,
                     )
                   }
@@ -360,6 +381,11 @@ const Follows: Component = () => {
             </div>
           )}
         </For>
+        <div class="min-w-36 pt-3 sm:pt-0">
+          <span>
+            Selected: {selectedCount()}/{followRecords.length}
+          </span>
+        </div>
       </div>
       <div class="sm:min-w-96">
         <For each={followRecords}>
@@ -371,17 +397,17 @@ const Follows: Component = () => {
                     type="checkbox"
                     id={"record" + index()}
                     class="h-4 w-4 rounded"
-                    checked={record.toBeDeleted}
+                    checked={record.toDelete}
                     onChange={(e) =>
                       setFollowRecords(
                         index(),
-                        "toBeDeleted",
+                        "toDelete",
                         e.currentTarget.checked,
                       )
                     }
                   />
                 </div>
-                <div classList={{ "bg-red-300": record.toBeDeleted }}>
+                <div classList={{ "bg-red-300": record.toDelete }}>
                   <label for={"record" + index()} class="flex flex-col">
                     <span>@{record.handle}</span>
                     <span>{record.did}</span>
@@ -430,7 +456,7 @@ const App: Component = () => {
       <Login />
       <Show when={loginState()}>
         <Fetch />
-        <Show when={followRecords.length}>
+        <Show when={fetchState()}>
           <Follows />
         </Show>
       </Show>
