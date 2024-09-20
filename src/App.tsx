@@ -1,4 +1,11 @@
-import { createSignal, onMount, For, Show, type Component } from "solid-js";
+import {
+  createSignal,
+  onMount,
+  For,
+  Show,
+  type Component,
+  createEffect,
+} from "solid-js";
 import { createStore } from "solid-js/store";
 
 import {
@@ -16,6 +23,7 @@ type AtpRecord = {
 
 const [recordList, setRecordList] = createStore<AtpRecord[]>([]);
 const [loginState, setLoginState] = createSignal(false);
+const [fetchState, setFetchState] = createSignal(false);
 let agent: Agent;
 
 const resolveDid = async (did: string) => {
@@ -160,6 +168,8 @@ const Fetch: Component = () => {
         });
       });
     });
+
+    setFetchState(true);
   };
 
   const deleteRecords = async () => {
@@ -181,6 +191,7 @@ const Fetch: Component = () => {
       });
     }
 
+    setFetchState(false);
     setRecordList([]);
     setNotice(`Deleted ${writes.length} record${writes.length > 1 ? "s" : ""}`);
   };
@@ -212,9 +223,9 @@ const Fetch: Component = () => {
         <button
           type="button"
           onclick={() => deleteRecords()}
-          class="rounded bg-green-500 px-4 py-2 font-bold text-white hover:bg-green-700"
+          class="rounded bg-red-500 px-4 py-2 font-bold text-white hover:bg-red-700"
         >
-          Confirm
+          Delete
         </button>
       </Show>
       <Show when={notice()}>
@@ -227,6 +238,12 @@ const Fetch: Component = () => {
 const Records: Component = () => {
   const [subtext, setSubtext] = createSignal("");
   const [deleteToggle, setDeleteToggle] = createSignal(false);
+  const [selectedCount, setSelectedCount] = createSignal(0);
+
+  //createEffect(() => {
+  //  console.log("effect");
+  //  setSelectedCount(recordList.filter((record) => record.toDelete).length);
+  //});
 
   function editRecords() {
     recordList.forEach((record, index) => {
@@ -296,6 +313,11 @@ const Records: Component = () => {
             <span class="ms-3 select-none dark:text-gray-300">Selected</span>
           </label>
         </div>
+        <div>
+          <span>
+            {selectedCount()}/{recordList.length}
+          </span>
+        </div>
       </div>
       <div class="sm:min-w-96">
         <For each={recordList}>
@@ -340,7 +362,7 @@ const App: Component = () => {
       <Login />
       <Show when={loginState()}>
         <Fetch />
-        <Show when={recordList.length}>
+        <Show when={fetchState()}>
           <Records />
         </Show>
       </Show>
