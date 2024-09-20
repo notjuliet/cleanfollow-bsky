@@ -308,14 +308,12 @@ const Follows: Component = () => {
     field: keyof FollowRecord,
     value: boolean,
   ) {
-    const range = followRecords.map((record, index) => {
-      if (record.status & status) return index;
-    });
-    setFollowRecords(
-      range.filter((i) => i !== undefined),
-      field,
-      value,
-    );
+    const range = followRecords
+      .map((record, index) => {
+        if (record.status & status) return index;
+      })
+      .filter((i) => i !== undefined);
+    setFollowRecords(range, field, value);
   }
 
   const options: { status: RepoStatus; label: string }[] = [
