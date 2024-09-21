@@ -38,7 +38,6 @@ type FollowRecord = {
 
 const [followRecords, setFollowRecords] = createStore<FollowRecord[]>([]);
 const [loginState, setLoginState] = createSignal(false);
-const [fetchState, setFetchState] = createSignal(false);
 let agent: Agent;
 
 const resolveDid = async (did: string) => {
@@ -173,6 +172,7 @@ const Fetch: Component = () => {
 
     await fetchFollows().then((follows) => {
       setFollowCount(follows.length);
+      let tmpFollows: FollowRecord[] = [];
       follows.forEach(async (record: ComAtprotoRepoListRecords.Record) => {
         let status: RepoStatus | undefined = undefined;
         const follow = record.value as AppBskyGraphFollow.Record;
@@ -220,7 +220,7 @@ const Fetch: Component = () => {
           : "";
 
         if (status !== undefined) {
-          setFollowRecords(followRecords.length, {
+          tmpFollows.push({
             did: follow.subject,
             handle: handle,
             uri: record.uri,
@@ -231,7 +231,7 @@ const Fetch: Component = () => {
           });
         }
         setProgress(progress() + 1);
-        if (progress() == followCount()) setFetchState(true);
+        if (progress() == followCount()) setFollowRecords(tmpFollows);
       });
     });
   };
@@ -256,7 +256,6 @@ const Fetch: Component = () => {
     }
 
     setFollowRecords([]);
-    setFetchState(false);
     setProgress(0);
     setFollowCount(0);
     setNotice(
@@ -454,7 +453,7 @@ const App: Component = () => {
       <Login />
       <Show when={loginState()}>
         <Fetch />
-        <Show when={fetchState()}>
+        <Show when={followRecords.length}>
           <Follows />
         </Show>
       </Show>
