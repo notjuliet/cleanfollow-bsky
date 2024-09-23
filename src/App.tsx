@@ -23,7 +23,6 @@ type AtpRecord = {
 
 const [recordList, setRecordList] = createStore<AtpRecord[]>([]);
 const [loginState, setLoginState] = createSignal(false);
-const [fetchState, setFetchState] = createSignal(false);
 let agent: Agent;
 
 const resolveDid = async (did: string) => {
@@ -51,15 +50,15 @@ const Login: Component = () => {
 
   onMount(async () => {
     setNotice("Loading...");
-    //client = await BrowserOAuthClient.load({
-    //  clientId:
-    //    "https://repocleaner.cleanfollow-bsky.pages.dev/client-metadata.json",
-    //  handleResolver: "https://boletus.us-west.host.bsky.network",
-    //});
-    client = new BrowserOAuthClient({
-      clientMetadata: undefined,
+    client = await BrowserOAuthClient.load({
+      clientId:
+        "https://repocleaner.cleanfollow-bsky.pages.dev/client-metadata.json",
       handleResolver: "https://boletus.us-west.host.bsky.network",
     });
+    //client = new BrowserOAuthClient({
+    //  clientMetadata: undefined,
+    //  handleResolver: "https://boletus.us-west.host.bsky.network",
+    //});
 
     client.addEventListener("deleted", () => {
       setLoginState(false);
@@ -131,8 +130,16 @@ const Login: Component = () => {
 };
 
 const Fetch: Component = () => {
-  const [collection, setCollection] = createSignal("");
+  const [collections, setCollections] = createSignal<string[]>([]);
   const [notice, setNotice] = createSignal("");
+  let currentCollection = "";
+
+  onMount(async () => {
+    const res = await agent.com.atproto.repo.describeRepo({
+      repo: agent.assertDid,
+    });
+    setCollections(res.data.collections);
+  });
 
   const fetchRecs = async () => {
     const fetchRecords = async () => {
@@ -140,7 +147,7 @@ const Fetch: Component = () => {
       const fetchPage = async (cursor?: string) => {
         return await agent.com.atproto.repo.listRecords({
           repo: agent.did!,
-          collection: collection(),
+          collection: currentCollection,
           limit: PAGE_LIMIT,
           cursor: cursor,
         });
@@ -160,16 +167,16 @@ const Fetch: Component = () => {
     setNotice("");
 
     await fetchRecords().then((records) => {
+      let tmpRecords: AtpRecord[] = [];
       records.forEach((record: ComAtprotoRepoListRecords.Record) => {
-        setRecordList(recordList.length, {
+        tmpRecords.push({
           record: JSON.stringify(record.value, null, 2),
           uri: record.uri,
           toDelete: false,
         });
       });
+      setRecordList(tmpRecords);
     });
-
-    setFetchState(true);
   };
 
   const deleteRecords = async () => {
@@ -178,7 +185,7 @@ const Fetch: Component = () => {
       .map((record) => {
         return {
           $type: "com.atproto.repo.applyWrites#delete",
-          collection: collection(),
+          collection: currentCollection,
           rkey: record.uri.split("/").pop(),
         } as ComAtprotoRepoApplyWrites.Delete;
       });
@@ -191,33 +198,26 @@ const Fetch: Component = () => {
       });
     }
 
-    setFetchState(false);
     setRecordList([]);
     setNotice(`Deleted ${writes.length} record${writes.length > 1 ? "s" : ""}`);
   };
 
   return (
-    <div class="flex flex-col items-center">
+    <div class="flex flex-col items-center space-y-1">
       <Show when={!recordList.length}>
-        <form
-          class="flex flex-col items-center"
-          onsubmit={(e) => e.preventDefault()}
-        >
-          <label for="collection">Collection:</label>
-          <input
-            type="text"
-            id="handle"
-            placeholder="app.bsky.feed.post"
-            class="mb-3 mt-1 rounded-md px-2 py-1"
-            onInput={(e) => setCollection(e.currentTarget.value)}
-          />
-          <button
-            onclick={() => fetchRecs()}
-            class="rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-700"
-          >
-            Preview
-          </button>
-        </form>
+        <For each={collections()}>
+          {(collection) => (
+            <div
+              class="cursor-pointer text-blue-600 hover:underline"
+              onclick={() => {
+                currentCollection = collection;
+                fetchRecs();
+              }}
+            >
+              {collection}
+            </div>
+          )}
+        </For>
       </Show>
       <Show when={recordList.length}>
         <button
@@ -240,16 +240,18 @@ const Records: Component = () => {
   const [deleteToggle, setDeleteToggle] = createSignal(false);
   const [selectedCount, setSelectedCount] = createSignal(0);
 
-  //createEffect(() => {
-  //  console.log("effect");
-  //  setSelectedCount(recordList.filter((record) => record.toDelete).length);
-  //});
+  createEffect(() => {
+    console.log("effect");
+    setSelectedCount(recordList.filter((record) => record.toDelete).length);
+  });
 
   function editRecords() {
-    recordList.forEach((record, index) => {
-      if (record.record.includes(subtext()))
-        setRecordList(index, "toDelete", true);
-    });
+    const range = recordList
+      .map((record, index) => {
+        if (record.record.includes(subtext())) return index;
+      })
+      .filter((i) => i !== undefined);
+    setRecordList(range, "toDelete", true);
   }
 
   return (
@@ -265,7 +267,7 @@ const Records: Component = () => {
                   true,
                 )
               }
-              class="rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-700"
+              class="mb-2 me-2 rounded-lg border border-gray-200 bg-white px-5 py-2.5 text-sm font-medium text-gray-900 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:outline-none focus:ring-4 focus:ring-gray-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white dark:focus:ring-gray-700"
             >
               Select All
             </button>
@@ -277,7 +279,7 @@ const Records: Component = () => {
                   false,
                 )
               }
-              class="rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-700"
+              class="mb-2 me-2 rounded-lg border border-gray-200 bg-white px-5 py-2.5 text-sm font-medium text-gray-900 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:outline-none focus:ring-4 focus:ring-gray-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white dark:focus:ring-gray-700"
             >
               Unselect All
             </button>
@@ -362,7 +364,7 @@ const App: Component = () => {
       <Login />
       <Show when={loginState()}>
         <Fetch />
-        <Show when={fetchState()}>
+        <Show when={recordList.length}>
           <Records />
         </Show>
       </Show>
