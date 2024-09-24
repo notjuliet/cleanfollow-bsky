@@ -133,6 +133,7 @@ const Fetch: Component = () => {
   const [collections, setCollections] = createSignal<string[]>([]);
   const [notice, setNotice] = createSignal("");
   let currentCollection = "";
+  const [cursor, setCursor] = createSignal<string | undefined>();
 
   onMount(async () => {
     const res = await agent.com.atproto.repo.describeRepo({
@@ -141,42 +142,31 @@ const Fetch: Component = () => {
     setCollections(res.data.collections);
   });
 
-  const fetchRecs = async () => {
-    const fetchRecords = async () => {
-      const PAGE_LIMIT = 100;
-      const fetchPage = async (cursor?: string) => {
-        return await agent.com.atproto.repo.listRecords({
-          repo: agent.did!,
-          collection: currentCollection,
-          limit: PAGE_LIMIT,
-          cursor: cursor,
-        });
-      };
-
-      let res = await fetchPage();
-      let records = res.data.records;
-
-      while (res.data.cursor && res.data.records.length >= PAGE_LIMIT) {
-        res = await fetchPage(res.data.cursor);
-        records = records.concat(res.data.records);
-      }
-
-      return records;
-    };
-
+  const fetchPage = async () => {
     setNotice("");
 
-    await fetchRecords().then((records) => {
-      let tmpRecords: AtpRecord[] = [];
-      records.forEach((record: ComAtprotoRepoListRecords.Record) => {
-        tmpRecords.push({
-          record: JSON.stringify(record.value, null, 2),
-          uri: record.uri,
-          toDelete: false,
-        });
-      });
-      setRecordList(tmpRecords);
+    const res = await agent.com.atproto.repo.listRecords({
+      repo: agent.did!,
+      collection: currentCollection,
+      limit: 100,
+      cursor: cursor(),
     });
+
+    setCursor(
+      res.data.cursor && res.data.records.length == 100 ?
+        res.data.cursor
+      : undefined,
+    );
+
+    let tmpRecords = Array.from(recordList);
+    res.data.records.forEach((record: ComAtprotoRepoListRecords.Record) => {
+      tmpRecords.push({
+        record: JSON.stringify(record, null, 2),
+        uri: record.uri,
+        toDelete: false,
+      });
+    });
+    setRecordList(tmpRecords);
   };
 
   const deleteRecords = async () => {
@@ -199,6 +189,7 @@ const Fetch: Component = () => {
     }
 
     setRecordList([]);
+    setCursor(undefined);
     setNotice(`Deleted ${writes.length} record${writes.length > 1 ? "s" : ""}`);
   };
 
@@ -211,7 +202,7 @@ const Fetch: Component = () => {
               class="cursor-pointer text-blue-600 hover:underline"
               onclick={() => {
                 currentCollection = collection;
-                fetchRecs();
+                fetchPage();
               }}
             >
               {collection}
@@ -220,6 +211,15 @@ const Fetch: Component = () => {
         </For>
       </Show>
       <Show when={recordList.length}>
+        <Show when={cursor() !== undefined}>
+          <button
+            type="button"
+            onclick={() => fetchPage()}
+            class="rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-700"
+          >
+            Load More
+          </button>
+        </Show>
         <button
           type="button"
           onclick={() => deleteRecords()}
@@ -241,7 +241,6 @@ const Records: Component = () => {
   const [selectedCount, setSelectedCount] = createSignal(0);
 
   createEffect(() => {
-    console.log("effect");
     setSelectedCount(recordList.filter((record) => record.toDelete).length);
   });
 
