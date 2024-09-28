@@ -47,7 +47,7 @@ const resolveDid = async (did: string) => {
     : "https://plc.directory/" + did,
   );
 
-  return await res.json().then((doc) => {
+  return res.json().then((doc) => {
     for (const alias of doc.alsoKnownAs) {
       if (alias.includes("at://")) {
         return alias.split("//")[1];
@@ -78,7 +78,7 @@ const Login: Component = () => {
     if (result) {
       agent = new Agent(result.session);
       setLoginState(true);
-      setHandle(await resolveDid(agent.did!));
+      setHandle(await resolveDid(agent.assertDid));
       sub = result.session.sub;
     }
     setNotice("");
@@ -149,7 +149,7 @@ const Fetch: Component = () => {
       const PAGE_LIMIT = 100;
       const fetchPage = async (cursor?: string) => {
         return await agent.com.atproto.repo.listRecords({
-          repo: agent.did!,
+          repo: agent.assertDid,
           collection: "app.bsky.graph.follow",
           limit: PAGE_LIMIT,
           cursor: cursor,
@@ -170,69 +170,69 @@ const Fetch: Component = () => {
     setProgress(0);
     setNotice("");
 
-    await fetchFollows().then((follows) => {
-      setFollowCount(follows.length);
-      let tmpFollows: FollowRecord[] = [];
-      follows.forEach(async (record: ComAtprotoRepoListRecords.Record) => {
-        let status: RepoStatus | undefined = undefined;
-        const follow = record.value as AppBskyGraphFollow.Record;
-        let handle = "";
+    const follows = await fetchFollows();
+    setFollowCount(follows.length);
+    let tmpFollows: FollowRecord[] = [];
 
-        try {
-          const res = await agent.getProfile({
-            actor: follow.subject,
-          });
+    follows.forEach(async (record: ComAtprotoRepoListRecords.Record) => {
+      let status: RepoStatus | undefined = undefined;
+      const follow = record.value as AppBskyGraphFollow.Record;
+      let handle = "";
 
-          handle = res.data.handle;
-          const viewer = res.data.viewer!;
+      try {
+        const res = await agent.getProfile({
+          actor: follow.subject,
+        });
 
-          if (!viewer.followedBy) status = RepoStatus.NONMUTUAL;
+        handle = res.data.handle;
+        const viewer = res.data.viewer!;
 
-          if (viewer.blockedBy) {
-            status =
-              viewer.blocking || viewer.blockingByList ?
-                RepoStatus.BLOCKEDBY | RepoStatus.BLOCKING
-              : RepoStatus.BLOCKEDBY;
-          } else if (res.data.did.includes(agent.did!)) {
-            status = RepoStatus.YOURSELF;
-          } else if (viewer.blocking || viewer.blockingByList) {
-            status = RepoStatus.BLOCKING;
-          }
-        } catch (e: any) {
-          handle = await resolveDid(follow.subject);
+        if (!viewer.followedBy) status = RepoStatus.NONMUTUAL;
 
+        if (viewer.blockedBy) {
           status =
-            e.message.includes("not found") ? RepoStatus.DELETED
-            : e.message.includes("deactivated") ? RepoStatus.DEACTIVATED
-            : e.message.includes("suspended") ? RepoStatus.SUSPENDED
-            : undefined;
+            viewer.blocking || viewer.blockingByList ?
+              RepoStatus.BLOCKEDBY | RepoStatus.BLOCKING
+            : RepoStatus.BLOCKEDBY;
+        } else if (res.data.did.includes(agent.assertDid)) {
+          status = RepoStatus.YOURSELF;
+        } else if (viewer.blocking || viewer.blockingByList) {
+          status = RepoStatus.BLOCKING;
         }
+      } catch (e: any) {
+        handle = await resolveDid(follow.subject);
 
-        const status_label =
-          status == RepoStatus.DELETED ? "Deleted"
-          : status == RepoStatus.DEACTIVATED ? "Deactivated"
-          : status == RepoStatus.SUSPENDED ? "Suspended"
-          : status == RepoStatus.NONMUTUAL ? "Non Mutual"
-          : status == RepoStatus.YOURSELF ? "Literally Yourself"
-          : status == RepoStatus.BLOCKING ? "Blocking"
-          : status == RepoStatus.BLOCKEDBY ? "Blocked by"
-          : RepoStatus.BLOCKEDBY | RepoStatus.BLOCKING ? "Mutual Block"
-          : "";
+        status =
+          e.message.includes("not found") ? RepoStatus.DELETED
+          : e.message.includes("deactivated") ? RepoStatus.DEACTIVATED
+          : e.message.includes("suspended") ? RepoStatus.SUSPENDED
+          : undefined;
+      }
 
-        if (status !== undefined) {
-          tmpFollows.push({
-            did: follow.subject,
-            handle: handle,
-            uri: record.uri,
-            status: status,
-            status_label: status_label,
-            toDelete: false,
-            visible: status == RepoStatus.NONMUTUAL ? false : true,
-          });
-        }
-        setProgress(progress() + 1);
-        if (progress() == followCount()) setFollowRecords(tmpFollows);
-      });
+      const status_label =
+        status == RepoStatus.DELETED ? "Deleted"
+        : status == RepoStatus.DEACTIVATED ? "Deactivated"
+        : status == RepoStatus.SUSPENDED ? "Suspended"
+        : status == RepoStatus.NONMUTUAL ? "Non Mutual"
+        : status == RepoStatus.YOURSELF ? "Literally Yourself"
+        : status == RepoStatus.BLOCKING ? "Blocking"
+        : status == RepoStatus.BLOCKEDBY ? "Blocked by"
+        : RepoStatus.BLOCKEDBY | RepoStatus.BLOCKING ? "Mutual Block"
+        : "";
+
+      if (status !== undefined) {
+        tmpFollows.push({
+          did: follow.subject,
+          handle: handle,
+          uri: record.uri,
+          status: status,
+          status_label: status_label,
+          toDelete: false,
+          visible: status == RepoStatus.NONMUTUAL ? false : true,
+        });
+      }
+      setProgress(progress() + 1);
+      if (progress() == followCount()) setFollowRecords(tmpFollows);
     });
   };
 
@@ -250,7 +250,7 @@ const Fetch: Component = () => {
     const BATCHSIZE = 200;
     for (let i = 0; i < writes.length; i += BATCHSIZE) {
       await agent.com.atproto.repo.applyWrites({
-        repo: agent.did!,
+        repo: agent.assertDid,
         writes: writes.slice(i, i + BATCHSIZE),
       });
     }
