@@ -9,12 +9,17 @@ import {
 import { createStore } from "solid-js/store";
 
 import {
-  Agent,
+  BrowserOAuthClient,
+  OAuthSession,
+} from "@atproto/oauth-client-browser";
+import "@atcute/bluesky/lexicons";
+import { XRPC } from "@atcute/client";
+import {
   AppBskyGraphFollow,
-  ComAtprotoRepoApplyWrites,
   ComAtprotoRepoListRecords,
-} from "@atproto/api";
-import { BrowserOAuthClient } from "@atproto/oauth-client-browser";
+  ComAtprotoRepoApplyWrites,
+  Brand,
+} from "@atcute/client/lexicons";
 
 enum RepoStatus {
   BLOCKEDBY = 1 << 0,
@@ -38,7 +43,8 @@ type FollowRecord = {
 
 const [followRecords, setFollowRecords] = createStore<FollowRecord[]>([]);
 const [loginState, setLoginState] = createSignal(false);
-let agent: Agent;
+let rpc: XRPC;
+let session: OAuthSession;
 
 const resolveDid = async (did: string) => {
   const res = await fetch(
@@ -61,7 +67,6 @@ const Login: Component = () => {
   const [handle, setHandle] = createSignal("");
   const [notice, setNotice] = createSignal("");
   let client: BrowserOAuthClient;
-  let sub: string;
 
   onMount(async () => {
     setNotice("Loading...");
@@ -76,10 +81,12 @@ const Login: Component = () => {
     const result = await client.init().catch(() => {});
 
     if (result) {
-      agent = new Agent(result.session);
+      session = result.session;
+      rpc = new XRPC({
+        handler: { handle: session.fetchHandler.bind(session) },
+      });
       setLoginState(true);
-      setHandle(await resolveDid(agent.assertDid));
-      sub = result.session.sub;
+      setHandle(await resolveDid(session.did));
     }
     setNotice("");
   });
@@ -97,7 +104,7 @@ const Login: Component = () => {
   };
 
   const logoutBsky = async () => {
-    if (sub) await client.revoke(sub);
+    if (session.sub) await client.revoke(session.sub);
   };
 
   return (
@@ -148,11 +155,13 @@ const Fetch: Component = () => {
     const fetchFollows = async () => {
       const PAGE_LIMIT = 100;
       const fetchPage = async (cursor?: string) => {
-        return await agent.com.atproto.repo.listRecords({
-          repo: agent.assertDid,
-          collection: "app.bsky.graph.follow",
-          limit: PAGE_LIMIT,
-          cursor: cursor,
+        return await rpc.get("com.atproto.repo.listRecords", {
+          params: {
+            repo: session.did,
+            collection: "app.bsky.graph.follow",
+            limit: PAGE_LIMIT,
+            cursor: cursor,
+          },
         });
       };
 
@@ -180,8 +189,8 @@ const Fetch: Component = () => {
       let handle = "";
 
       try {
-        const res = await agent.getProfile({
-          actor: follow.subject,
+        const res = await rpc.get("app.bsky.actor.getProfile", {
+          params: { actor: follow.subject },
         });
 
         handle = res.data.handle;
@@ -194,7 +203,7 @@ const Fetch: Component = () => {
             viewer.blocking || viewer.blockingByList ?
               RepoStatus.BLOCKEDBY | RepoStatus.BLOCKING
             : RepoStatus.BLOCKEDBY;
-        } else if (res.data.did.includes(agent.assertDid)) {
+        } else if (res.data.did.includes(session.did)) {
           status = RepoStatus.YOURSELF;
         } else if (viewer.blocking || viewer.blockingByList) {
           status = RepoStatus.BLOCKING;
@@ -239,19 +248,21 @@ const Fetch: Component = () => {
   const unfollow = async () => {
     const writes = followRecords
       .filter((record) => record.toDelete)
-      .map((record) => {
+      .map((record): Brand.Union<ComAtprotoRepoApplyWrites.Delete> => {
         return {
           $type: "com.atproto.repo.applyWrites#delete",
           collection: "app.bsky.graph.follow",
-          rkey: record.uri.split("/").pop(),
-        } as ComAtprotoRepoApplyWrites.Delete;
+          rkey: record.uri.split("/").pop()!,
+        };
       });
 
     const BATCHSIZE = 200;
     for (let i = 0; i < writes.length; i += BATCHSIZE) {
-      await agent.com.atproto.repo.applyWrites({
-        repo: agent.assertDid,
-        writes: writes.slice(i, i + BATCHSIZE),
+      await rpc.call("com.atproto.repo.applyWrites", {
+        data: {
+          repo: session.did,
+          writes: writes.slice(i, i + BATCHSIZE),
+        },
       });
     }
 
