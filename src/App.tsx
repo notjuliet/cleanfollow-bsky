@@ -1,25 +1,37 @@
 import {
+  createEffect,
   createSignal,
-  onMount,
   For,
+  onMount,
   Show,
   type Component,
-  createEffect,
 } from "solid-js";
 import { createStore } from "solid-js/store";
 
-import {
-  BrowserOAuthClient,
-  OAuthSession,
-} from "@atproto/oauth-client-browser";
-import "@atcute/bluesky/lexicons";
 import { XRPC } from "@atcute/client";
 import {
   AppBskyGraphFollow,
-  ComAtprotoRepoListRecords,
-  ComAtprotoRepoApplyWrites,
+  At,
   Brand,
+  ComAtprotoRepoApplyWrites,
+  ComAtprotoRepoListRecords,
 } from "@atcute/client/lexicons";
+import {
+  configureOAuth,
+  createAuthorizationUrl,
+  finalizeAuthorization,
+  getSession,
+  OAuthUserAgent,
+  resolveFromIdentity,
+  type Session,
+} from "@atcute/oauth-browser-client";
+
+configureOAuth({
+  metadata: {
+    client_id: import.meta.env.VITE_OAUTH_CLIENT_ID,
+    redirect_uri: import.meta.env.VITE_OAUTH_REDIRECT_URL,
+  },
+});
 
 enum RepoStatus {
   BLOCKEDBY = 1 << 0,
@@ -44,7 +56,7 @@ type FollowRecord = {
 const [followRecords, setFollowRecords] = createStore<FollowRecord[]>([]);
 const [loginState, setLoginState] = createSignal(false);
 let rpc: XRPC;
-let session: OAuthSession;
+let agent: OAuthUserAgent;
 
 const resolveDid = async (did: string) => {
   const res = await fetch(
@@ -66,45 +78,71 @@ const Login: Component = () => {
   const [loginInput, setLoginInput] = createSignal("");
   const [handle, setHandle] = createSignal("");
   const [notice, setNotice] = createSignal("");
-  let client: BrowserOAuthClient;
 
   onMount(async () => {
     setNotice("Loading...");
-    client = await BrowserOAuthClient.load({
-      clientId: "https://cleanfollow-bsky.pages.dev/client-metadata.json",
-      handleResolver: "https://boletus.us-west.host.bsky.network",
-    });
 
-    client.addEventListener("deleted", () => {
-      setLoginState(false);
-    });
-    const result = await client.init().catch(() => {});
+    const init = async (): Promise<Session | undefined> => {
+      const params = new URLSearchParams(location.hash.slice(1));
 
-    if (result) {
-      session = result.session;
-      rpc = new XRPC({
-        handler: { handle: session.fetchHandler.bind(session) },
-      });
+      if (params.has("state") && (params.has("code") || params.has("error"))) {
+        history.replaceState(null, "", location.pathname + location.search);
+
+        const session = await finalizeAuthorization(params);
+        const did = session.info.sub;
+
+        localStorage.setItem("lastSignedIn", did);
+        return session;
+      } else {
+        const lastSignedIn = localStorage.getItem("lastSignedIn");
+
+        if (lastSignedIn) {
+          try {
+            const session = await getSession(lastSignedIn as At.DID);
+            return session;
+          } catch (err) {
+            localStorage.removeItem("lastSignedIn");
+            throw err;
+          }
+        }
+      }
+    };
+
+    const session = await init().catch(() => {});
+
+    if (session) {
+      agent = new OAuthUserAgent(session);
+      rpc = new XRPC({ handler: agent });
+
       setLoginState(true);
-      setHandle(await resolveDid(session.did));
+      setHandle(await resolveDid(agent.sub));
     }
+
     setNotice("");
   });
 
   const loginBsky = async (handle: string) => {
-    setNotice("Redirecting...");
     try {
-      await client.signIn(handle, {
-        scope: "atproto transition:generic",
-        signal: new AbortController().signal,
+      setNotice(`Resolving your identity...`);
+      const resolved = await resolveFromIdentity(handle);
+
+      setNotice(`Contacting your data server...`);
+      const authUrl = await createAuthorizationUrl({
+        scope: import.meta.env.VITE_OAUTH_SCOPE,
+        ...resolved,
       });
+
+      setNotice(`Redirecting...`);
+      await new Promise((resolve) => setTimeout(resolve, 250));
+
+      location.assign(authUrl);
     } catch (err) {
-      setNotice("Error during OAuth redirection");
+      setNotice("Error during OAuth login");
     }
   };
 
   const logoutBsky = async () => {
-    if (session.sub) await client.revoke(session.sub);
+    await agent.signOut();
   };
 
   return (
@@ -157,7 +195,7 @@ const Fetch: Component = () => {
       const fetchPage = async (cursor?: string) => {
         return await rpc.get("com.atproto.repo.listRecords", {
           params: {
-            repo: session.did,
+            repo: agent.sub,
             collection: "app.bsky.graph.follow",
             limit: PAGE_LIMIT,
             cursor: cursor,
@@ -203,7 +241,7 @@ const Fetch: Component = () => {
             viewer.blocking || viewer.blockingByList ?
               RepoStatus.BLOCKEDBY | RepoStatus.BLOCKING
             : RepoStatus.BLOCKEDBY;
-        } else if (res.data.did.includes(session.did)) {
+        } else if (res.data.did.includes(agent.sub)) {
           status = RepoStatus.YOURSELF;
         } else if (viewer.blocking || viewer.blockingByList) {
           status = RepoStatus.BLOCKING;
@@ -260,7 +298,7 @@ const Fetch: Component = () => {
     for (let i = 0; i < writes.length; i += BATCHSIZE) {
       await rpc.call("com.atproto.repo.applyWrites", {
         data: {
-          repo: session.did,
+          repo: agent.sub,
           writes: writes.slice(i, i + BATCHSIZE),
         },
       });

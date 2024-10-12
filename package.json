@@ -12,6 +12,7 @@
   "license": "0BSD",
   "devDependencies": {
     "@tailwindcss/forms": "^0.5.7",
+    "@types/node": "^22.7.5",
     "autoprefixer": "^10.4.19",
     "postcss": "^8.4.39",
     "prettier": "^3.3.3",
@@ -25,7 +26,7 @@
   "dependencies": {
     "@atcute/bluesky": "^1.0.7",
     "@atcute/client": "^2.0.2",
-    "@atproto/oauth-client-browser": "^0.2.0",
+    "@atcute/oauth-browser-client": "^1.0.1",
     "solid-js": "^1.8.11"
   }
 }
