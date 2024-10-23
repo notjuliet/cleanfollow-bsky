@@ -162,7 +162,7 @@ const Login: Component = () => {
           />
           <button
             onclick={() => loginBsky(loginInput())}
-            class="rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-700"
+            class="rounded bg-blue-500 px-2 py-2 font-bold text-white hover:bg-blue-700"
           >
             Login
           </button>
@@ -318,7 +318,7 @@ const Fetch: Component = () => {
         <button
           type="button"
           onclick={() => fetchHiddenAccounts()}
-          class="rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-700"
+          class="rounded bg-blue-500 px-2 py-2 font-bold text-white hover:bg-blue-700"
         >
           Preview
         </button>
@@ -327,7 +327,7 @@ const Fetch: Component = () => {
         <button
           type="button"
           onclick={() => unfollow()}
-          class="rounded bg-green-500 px-4 py-2 font-bold text-white hover:bg-green-700"
+          class="rounded bg-green-600 px-2 py-2 font-bold text-white hover:bg-green-700"
         >
           Confirm
         </button>
@@ -437,8 +437,13 @@ const Follows: Component = () => {
         <For each={followRecords}>
           {(record, index) => (
             <Show when={record.visible}>
-              <div class="mb-2 flex items-center border-b pb-2">
-                <div class="mr-4">
+              <div
+                classList={{
+                  "mb-1 flex items-center border-b py-1": true,
+                  "bg-red-400": record.toDelete,
+                }}
+              >
+                <div class="mx-2">
                   <input
                     type="checkbox"
                     id={"record" + index()}
@@ -453,7 +458,7 @@ const Follows: Component = () => {
                     }
                   />
                 </div>
-                <div classList={{ "bg-red-300": record.toDelete }}>
+                <div>
                   <label for={"record" + index()} class="flex flex-col">
                     <span>@{record.handle}</span>
                     <span>{record.did}</span>
