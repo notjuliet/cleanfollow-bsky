@@ -1,10 +1,10 @@
 import {
+  type Component,
   createEffect,
   createSignal,
   For,
   onMount,
   Show,
-  type Component,
 } from "solid-js";
 import { createStore } from "solid-js/store";
 
@@ -98,8 +98,7 @@ const Login: Component = () => {
 
         if (lastSignedIn) {
           try {
-            const session = await getSession(lastSignedIn as At.DID);
-            return session;
+            return await getSession(lastSignedIn as At.DID);
           } catch (err) {
             localStorage.removeItem("lastSignedIn");
             throw err;
@@ -275,7 +274,7 @@ const Fetch: Component = () => {
           status: status,
           status_label: status_label,
           toDelete: false,
-          visible: status == RepoStatus.NONMUTUAL ? false : true,
+          visible: status != RepoStatus.NONMUTUAL,
         });
       }
       setProgress(progress() + 1);
@@ -390,9 +389,7 @@ const Follows: Component = () => {
                   <input
                     type="checkbox"
                     class="peer sr-only"
-                    checked={
-                      option.status == RepoStatus.NONMUTUAL ? false : true
-                    }
+                    checked={option.status != RepoStatus.NONMUTUAL}
                     onChange={(e) =>
                       editRecords(
                         option.status,
