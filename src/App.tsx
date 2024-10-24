@@ -14,7 +14,6 @@ import {
   At,
   Brand,
   ComAtprotoRepoApplyWrites,
-  ComAtprotoRepoListRecords,
 } from "@atcute/client/lexicons";
 import {
   configureOAuth,
@@ -168,7 +167,7 @@ const Login: Component = () => {
         </form>
       </Show>
       <Show when={loginState() && handle()}>
-        <div class="mb-5">
+        <div class="mb-4">
           Logged in as @{handle()} (
           <a href="" class="text-red-600" onclick={() => logoutBsky()}>
             Logout
@@ -220,7 +219,7 @@ const Fetch: Component = () => {
     setFollowCount(follows.length);
     let tmpFollows: FollowRecord[] = [];
 
-    follows.forEach(async (record: ComAtprotoRepoListRecords.Record) => {
+    follows.forEach(async (record) => {
       let status: RepoStatus | undefined = undefined;
       const follow = record.value as AppBskyGraphFollow.Record;
       let handle = "";
@@ -474,7 +473,7 @@ const Follows: Component = () => {
 const App: Component = () => {
   return (
     <div class="m-5 flex flex-col items-center">
-      <h1 class="mb-5 text-2xl">cleanfollow-bsky</h1>
+      <h1 class="mb-3 text-xl font-bold">cleanfollow-bsky</h1>
       <div class="mb-3 text-center">
         <p>Unfollow blocked, deleted, suspended, and deactivated accounts</p>
         <p>By default, every account will be unselected</p>
@@ -488,7 +487,7 @@ const App: Component = () => {
           <span> | </span>
           <a
             class="text-blue-600 hover:underline"
-            href="https://bsky.app/profile/adorable.mom"
+            href="https://bsky.app/profile/bsky.mom"
           >
             Bluesky
           </a>
