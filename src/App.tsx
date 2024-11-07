@@ -64,13 +64,16 @@ const resolveDid = async (did: string) => {
     : "https://plc.directory/" + did,
   );
 
-  return res.json().then((doc) => {
-    for (const alias of doc.alsoKnownAs) {
-      if (alias.includes("at://")) {
-        return alias.split("//")[1];
+  return res
+    .json()
+    .then((doc) => {
+      for (const alias of doc.alsoKnownAs) {
+        if (alias.includes("at://")) {
+          return alias.split("//")[1];
+        }
       }
-    }
-  });
+    })
+    .catch(() => "");
 };
 
 const Login: Component = () => {
@@ -456,7 +459,9 @@ const Follows: Component = () => {
                 </div>
                 <div>
                   <label for={"record" + index()} class="flex flex-col">
-                    <span>@{record.handle}</span>
+                    <Show when={record.handle.length}>
+                      <span>@{record.handle}</span>
+                    </Show>
                     <span>{record.did}</span>
                     <span>{record.status_label}</span>
                   </label>
