@@ -24,6 +24,7 @@ import {
   resolveFromIdentity,
   type Session,
 } from "@atcute/oauth-browser-client";
+import { AiFillGithub, Bluesky, TbMoonStar, TbSun } from "./svg";
 
 configureOAuth({
   metadata: {
@@ -148,21 +149,20 @@ const Login: Component = () => {
   return (
     <div class="flex flex-col items-center">
       <Show when={!loginState() && !notice().includes("Loading")}>
-        <form
-          class="flex flex-col items-center"
-          onsubmit={(e) => e.preventDefault()}
-        >
-          <label for="handle">Handle:</label>
+        <form class="flex flex-col" onsubmit={(e) => e.preventDefault()}>
+          <label for="handle" class="ml-0.5">
+            Handle
+          </label>
           <input
             type="text"
             id="handle"
             placeholder="user.bsky.social"
-            class="mb-3 mt-1 rounded-md border border-black px-2 py-1"
+            class="dark:bg-dark-100 mb-2 rounded-lg border border-gray-400 px-2 py-1 focus:outline-none focus:ring-1 focus:ring-gray-300"
             onInput={(e) => setLoginInput(e.currentTarget.value)}
           />
           <button
             onclick={() => loginBsky(loginInput())}
-            class="rounded bg-blue-500 px-2 py-2 font-bold text-white hover:bg-blue-700"
+            class="rounded bg-blue-600 py-1.5 font-bold text-slate-100 hover:bg-blue-700"
           >
             Login
           </button>
@@ -170,11 +170,10 @@ const Login: Component = () => {
       </Show>
       <Show when={loginState() && handle()}>
         <div class="mb-4">
-          Logged in as @{handle()} (
-          <a href="" class="text-red-600" onclick={() => logoutBsky()}>
+          Logged in as @{handle()}
+          <a href="" class="ml-2 text-red-500" onclick={() => logoutBsky()}>
             Logout
           </a>
-          )
         </div>
       </Show>
       <Show when={notice()}>
@@ -315,7 +314,7 @@ const Fetch: Component = () => {
         <button
           type="button"
           onclick={() => fetchHiddenAccounts()}
-          class="rounded bg-blue-500 px-2 py-2 font-bold text-white hover:bg-blue-700"
+          class="rounded bg-blue-600 px-2 py-2 font-bold text-slate-100 hover:bg-blue-700"
         >
           Preview
         </button>
@@ -324,7 +323,7 @@ const Fetch: Component = () => {
         <button
           type="button"
           onclick={() => unfollow()}
-          class="rounded bg-green-600 px-2 py-2 font-bold text-white hover:bg-green-700"
+          class="rounded bg-green-600 px-2 py-2 font-bold text-slate-100 hover:bg-green-700"
         >
           Confirm
         </button>
@@ -371,7 +370,7 @@ const Follows: Component = () => {
 
   return (
     <div class="mt-6 flex flex-col sm:w-full sm:flex-row sm:justify-center">
-      <div class="sticky top-0 mb-3 mr-5 flex w-full flex-wrap justify-around border-b border-b-gray-400 bg-white pb-3 sm:top-3 sm:mb-0 sm:w-auto sm:flex-col sm:self-start sm:border-none">
+      <div class="dark:bg-dark-500 sticky top-0 mb-3 mr-5 flex w-full flex-wrap justify-around border-b border-b-gray-400 bg-slate-100 pb-3 sm:top-3 sm:mb-0 sm:w-auto sm:flex-col sm:self-start sm:border-none">
         <For each={options}>
           {(option, index) => (
             <div
@@ -396,9 +395,7 @@ const Follows: Component = () => {
                     }
                   />
                   <span class="peer relative h-5 w-9 rounded-full bg-gray-200 after:absolute after:start-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-blue-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rtl:peer-checked:after:-translate-x-full dark:border-gray-600 dark:bg-gray-700 dark:peer-focus:ring-blue-800"></span>
-                  <span class="ms-3 select-none dark:text-gray-300">
-                    {option.label}
-                  </span>
+                  <span class="ms-3 select-none">{option.label}</span>
                 </label>
               </div>
               <div class="flex items-center">
@@ -434,7 +431,7 @@ const Follows: Component = () => {
               <div
                 classList={{
                   "mb-1 flex items-center border-b py-1": true,
-                  "bg-red-400": record.toDelete,
+                  "bg-red-300 dark:bg-red-800": record.toDelete,
                 }}
               >
                 <div class="mx-2">
@@ -471,33 +468,62 @@ const Follows: Component = () => {
 };
 
 const App: Component = () => {
+  const [theme, setTheme] = createSignal(
+    (
+      localStorage.theme === "dark" ||
+        (!("theme" in localStorage) &&
+          globalThis.matchMedia("(prefers-color-scheme: dark)").matches)
+    ) ?
+      "dark"
+    : "light",
+  );
+
   return (
-    <div class="m-5 flex flex-col items-center">
-      <h1 class="mb-2 text-xl font-bold">cleanfollow-bsky</h1>
-      <div class="mb-2 text-center">
-        <p>Select then unfollow inactive or blocked accounts</p>
-        <div>
-          <a
-            class="text-blue-600 hover:underline"
-            href="https://github.com/notjuliet/cleanfollow-bsky"
+    <div class="m-5 flex flex-col items-center text-slate-900 dark:text-slate-100">
+      <div class="mb-2 flex w-[20rem] items-center">
+        <div class="basis-1/3">
+          <div
+            class="w-fit cursor-pointer"
+            onclick={() => {
+              setTheme(theme() === "light" ? "dark" : "light");
+              if (theme() === "dark")
+                document.documentElement.classList.add("dark");
+              else document.documentElement.classList.remove("dark");
+              localStorage.theme = theme();
+            }}
           >
-            Source Code
-          </a>
-          <span> | </span>
+            {theme() === "dark" ?
+              <TbMoonStar class="size-6" />
+            : <TbSun class="size-6" />}
+          </div>
+        </div>
+        <div class="basis-1/3 text-center text-xl font-bold">
+          <a href="">cleanfollow</a>
+        </div>
+        <div class="justify-right flex basis-1/3 gap-x-2">
           <a
-            class="text-blue-600 hover:underline"
             href="https://bsky.app/profile/did:plc:b3pn34agqqchkaf75v7h43dk"
+            target="_blank"
           >
-            Bluesky
+            <Bluesky class="size-6" />
           </a>
-          <span> | </span>
           <a
-            class="text-blue-600 hover:underline"
-            href="https://mary-ext.codeberg.page/bluesky-quiet-posters/"
+            href="https://github.com/notjuliet/cleanfollow-bsky"
+            target="_blank"
           >
-            Quiet Posters
+            <AiFillGithub class="size-6" />
           </a>
         </div>
+      </div>
+      <div class="mb-2 text-center">
+        <p>Select then unfollow inactive or blocked accounts</p>
+        <a
+          class="text-blue-500 hover:underline"
+          target="_blank"
+          href="https://mary-ext.codeberg.page/bluesky-quiet-posters/"
+        >
+          Quiet Posters
+        </a>
       </div>
       <Login />
       <Show when={loginState()}>

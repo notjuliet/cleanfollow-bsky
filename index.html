@@ -1,23 +1,33 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
+    <meta property="og:title" content="cleanfollow-bsky" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://cleanfollow-bsky.pages.dev" />
+    <meta
+      property="og:description"
+      content="Unfollow blocked, deleted, suspended, and deactivated Bluesky accounts"
+    />
+    <link rel="shortcut icon" type="image/ico" href="/src/assets/favicon.ico" />
+    <title>cleanfollow-bsky</title>
+    <script>
+      if (
+        localStorage.theme === "dark" ||
+        (!("theme" in localStorage) &&
+          window.matchMedia("(prefers-color-scheme: dark)").matches)
+      )
+        document.documentElement.classList.add("dark");
+      else document.documentElement.classList.remove("dark");
+    </script>
+  </head>
 
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#000000" />
-  <meta property="og:title" content="cleanfollow-bsky" />
-  <meta property="og:type" content="website" />
-  <meta property="og:url" content="https://cleanfollow-bsky.pages.dev" />
-  <meta property="og:description" content="Unfollow blocked, deleted, suspended, and deactivated Bluesky accounts" />
-  <link rel="shortcut icon" type="image/ico" href="/src/assets/favicon.ico" />
-  <title>cleanfollow-bsky</title>
-</head>
+  <body id="root" class="dark:bg-dark-500 bg-slate-100">
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
 
-<body>
-  <noscript>You need to enable JavaScript to run this app.</noscript>
-  <div id="root"></div>
-
-  <script src="/src/index.tsx" type="module"></script>
-</body>
-
+    <script src="/src/index.tsx" type="module"></script>
+  </body>
 </html>
