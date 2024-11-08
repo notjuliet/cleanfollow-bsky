@@ -171,7 +171,11 @@ const Login: Component = () => {
       <Show when={loginState() && handle()}>
         <div class="mb-4">
           Logged in as @{handle()}
-          <a href="" class="ml-2 text-red-500" onclick={() => logoutBsky()}>
+          <a
+            href=""
+            class="ml-2 text-red-500 dark:text-red-400"
+            onclick={() => logoutBsky()}
+          >
             Logout
           </a>
         </div>
@@ -323,7 +327,7 @@ const Fetch: Component = () => {
         <button
           type="button"
           onclick={() => unfollow()}
-          class="rounded bg-green-600 px-2 py-2 font-bold text-slate-100 hover:bg-green-700"
+          class="rounded bg-blue-600 px-2 py-2 font-bold text-slate-100 hover:bg-blue-700"
         >
           Confirm
         </button>
@@ -432,7 +436,7 @@ const Follows: Component = () => {
                 classList={{
                   "mb-1 flex items-center border-b dark:border-b-gray-500 py-1":
                     true,
-                  "bg-red-300 dark:bg-rose-900": record.toDelete,
+                  "bg-red-300 dark:bg-rose-800": record.toDelete,
                 }}
               >
                 <div class="mx-2">
@@ -517,14 +521,7 @@ const App: Component = () => {
         </div>
       </div>
       <div class="mb-2 text-center">
-        <p>Select then unfollow inactive or blocked accounts</p>
-        <a
-          class="text-blue-500 hover:underline"
-          target="_blank"
-          href="https://mary-ext.codeberg.page/bluesky-quiet-posters/"
-        >
-          Quiet Posters
-        </a>
+        <p>Select inactive or blocked accounts to unfollow</p>
       </div>
       <Login />
       <Show when={loginState()}>
