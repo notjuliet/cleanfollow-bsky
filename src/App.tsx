@@ -39,7 +39,6 @@ enum RepoStatus {
   DEACTIVATED = 1 << 3,
   SUSPENDED = 1 << 4,
   YOURSELF = 1 << 5,
-  NONMUTUAL = 1 << 6,
 }
 
 type FollowRecord = {
@@ -235,8 +234,6 @@ const Fetch: Component = () => {
         handle = res.data.handle;
         const viewer = res.data.viewer!;
 
-        if (!viewer.followedBy) status = RepoStatus.NONMUTUAL;
-
         if (viewer.blockedBy) {
           status =
             viewer.blocking || viewer.blockingByList ?
@@ -261,7 +258,6 @@ const Fetch: Component = () => {
         status == RepoStatus.DELETED ? "Deleted"
         : status == RepoStatus.DEACTIVATED ? "Deactivated"
         : status == RepoStatus.SUSPENDED ? "Suspended"
-        : status == RepoStatus.NONMUTUAL ? "Non Mutual"
         : status == RepoStatus.YOURSELF ? "Literally Yourself"
         : status == RepoStatus.BLOCKING ? "Blocking"
         : status == RepoStatus.BLOCKEDBY ? "Blocked by"
@@ -276,7 +272,7 @@ const Fetch: Component = () => {
           status: status,
           status_label: status_label,
           toDelete: false,
-          visible: status != RepoStatus.NONMUTUAL,
+          visible: true,
         });
       }
       setProgress(progress() + 1);
@@ -371,7 +367,6 @@ const Follows: Component = () => {
     { status: RepoStatus.SUSPENDED, label: "Suspended" },
     { status: RepoStatus.BLOCKEDBY, label: "Blocked By" },
     { status: RepoStatus.BLOCKING, label: "Blocking" },
-    { status: RepoStatus.NONMUTUAL, label: "Non Mutual" },
   ];
 
   return (
@@ -391,7 +386,7 @@ const Follows: Component = () => {
                   <input
                     type="checkbox"
                     class="peer sr-only"
-                    checked={option.status != RepoStatus.NONMUTUAL}
+                    checked
                     onChange={(e) =>
                       editRecords(
                         option.status,
