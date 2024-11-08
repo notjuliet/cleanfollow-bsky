@@ -376,7 +376,7 @@ const Follows: Component = () => {
             <div
               classList={{
                 "sm:pb-2 min-w-36 sm:mb-2 mt-3 sm:mt-0": true,
-                "sm:border-b sm:border-b-gray-300":
+                "sm:border-b sm:border-b-gray-300 dark:sm:border-b-gray-500":
                   index() < options.length - 1,
               }}
             >
@@ -430,8 +430,9 @@ const Follows: Component = () => {
             <Show when={record.visible}>
               <div
                 classList={{
-                  "mb-1 flex items-center border-b py-1": true,
-                  "bg-red-300 dark:bg-red-800": record.toDelete,
+                  "mb-1 flex items-center border-b dark:border-b-gray-500 py-1":
+                    true,
+                  "bg-red-300 dark:bg-rose-900": record.toDelete,
                 }}
               >
                 <div class="mx-2">
