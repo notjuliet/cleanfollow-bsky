@@ -478,10 +478,9 @@ const Follows: Component = () => {
 const App: Component = () => {
   return (
     <div class="m-5 flex flex-col items-center">
-      <h1 class="mb-3 text-xl font-bold">cleanfollow-bsky</h1>
-      <div class="mb-3 text-center">
-        <p>Unfollow blocked, deleted, suspended, and deactivated accounts</p>
-        <p>By default, every account will be unselected</p>
+      <h1 class="mb-2 text-xl font-bold">cleanfollow-bsky</h1>
+      <div class="mb-2 text-center">
+        <p>Select then unfollow inactive or blocked accounts</p>
         <div>
           <a
             class="text-blue-600 hover:underline"

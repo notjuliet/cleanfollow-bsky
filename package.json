@@ -1,15 +1,13 @@
 {
   "name": "cleanfollow-bsky",
-  "version": "0.0.0",
-  "description": "unfollows deleted, deactivated, and blocked bluesky accounts",
   "type": "module",
+  "license": "0BSD",
   "scripts": {
     "start": "vite",
     "dev": "vite",
     "build": "vite build",
     "serve": "vite preview"
   },
-  "license": "0BSD",
   "devDependencies": {
     "@atcute/bluesky": "^1.0.8",
     "@types/node": "^22.9.0",
