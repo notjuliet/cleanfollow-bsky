@@ -3,6 +3,6 @@ import { render } from "solid-js/web";
 
 import App from "./App";
 import "virtual:uno.css";
-import "@unocss/reset/tailwind-compat.css";
+import "./tailwind-compat.css";
 
 render(() => <App />, document.getElementById("root") as HTMLElement);
