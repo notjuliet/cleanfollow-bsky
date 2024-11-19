@@ -167,6 +167,9 @@ const Login: Component = () => {
             Login
           </button>
         </form>
+        <div class="mt-3">
+          Remember to use your main password, not an app password.
+        </div>
       </Show>
       <Show when={loginState() && handle()}>
         <div class="mb-4">
