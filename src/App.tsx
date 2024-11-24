@@ -211,8 +211,10 @@ const Fetch: Component = () => {
 
       let res = await fetchPage();
       let follows = res.data.records;
+      setNotice(`Fetching follows: ${follows.length}`);
 
       while (res.data.cursor && res.data.records.length >= PAGE_LIMIT) {
+        setNotice(`Fetching follows: ${follows.length}`);
         res = await fetchPage(res.data.cursor);
         follows = follows.concat(res.data.records);
       }
@@ -221,69 +223,72 @@ const Fetch: Component = () => {
     };
 
     setProgress(0);
-    setNotice("");
-
     const follows = await fetchFollows();
     setFollowCount(follows.length);
     const tmpFollows: FollowRecord[] = [];
+    setNotice("");
 
-    follows.forEach(async (record) => {
-      let status: RepoStatus | undefined = undefined;
-      const follow = record.value as AppBskyGraphFollow.Record;
-      let handle = "";
+    const timer = (ms: number) => new Promise((res) => setTimeout(res, ms));
+    for (let i = 0; i < follows.length; i = i + 10) {
+      if (follows.length > 1000) await timer(1000);
+      follows.slice(i, i + 10).forEach(async (record) => {
+        let status: RepoStatus | undefined = undefined;
+        const follow = record.value as AppBskyGraphFollow.Record;
+        let handle = "";
 
-      try {
-        const res = await rpc.get("app.bsky.actor.getProfile", {
-          params: { actor: follow.subject },
-        });
+        try {
+          const res = await rpc.get("app.bsky.actor.getProfile", {
+            params: { actor: follow.subject },
+          });
 
-        handle = res.data.handle;
-        const viewer = res.data.viewer!;
+          handle = res.data.handle;
+          const viewer = res.data.viewer!;
 
-        if (viewer.blockedBy) {
+          if (viewer.blockedBy) {
+            status =
+              viewer.blocking || viewer.blockingByList ?
+                RepoStatus.BLOCKEDBY | RepoStatus.BLOCKING
+              : RepoStatus.BLOCKEDBY;
+          } else if (res.data.did.includes(agent.sub)) {
+            status = RepoStatus.YOURSELF;
+          } else if (viewer.blocking || viewer.blockingByList) {
+            status = RepoStatus.BLOCKING;
+          }
+        } catch (e: any) {
+          handle = await resolveDid(follow.subject);
+
           status =
-            viewer.blocking || viewer.blockingByList ?
-              RepoStatus.BLOCKEDBY | RepoStatus.BLOCKING
-            : RepoStatus.BLOCKEDBY;
-        } else if (res.data.did.includes(agent.sub)) {
-          status = RepoStatus.YOURSELF;
-        } else if (viewer.blocking || viewer.blockingByList) {
-          status = RepoStatus.BLOCKING;
+            e.message.includes("not found") ? RepoStatus.DELETED
+            : e.message.includes("deactivated") ? RepoStatus.DEACTIVATED
+            : e.message.includes("suspended") ? RepoStatus.SUSPENDED
+            : undefined;
         }
-      } catch (e: any) {
-        handle = await resolveDid(follow.subject);
 
-        status =
-          e.message.includes("not found") ? RepoStatus.DELETED
-          : e.message.includes("deactivated") ? RepoStatus.DEACTIVATED
-          : e.message.includes("suspended") ? RepoStatus.SUSPENDED
-          : undefined;
-      }
+        const status_label =
+          status == RepoStatus.DELETED ? "Deleted"
+          : status == RepoStatus.DEACTIVATED ? "Deactivated"
+          : status == RepoStatus.SUSPENDED ? "Suspended"
+          : status == RepoStatus.YOURSELF ? "Literally Yourself"
+          : status == RepoStatus.BLOCKING ? "Blocking"
+          : status == RepoStatus.BLOCKEDBY ? "Blocked by"
+          : RepoStatus.BLOCKEDBY | RepoStatus.BLOCKING ? "Mutual Block"
+          : "";
 
-      const status_label =
-        status == RepoStatus.DELETED ? "Deleted"
-        : status == RepoStatus.DEACTIVATED ? "Deactivated"
-        : status == RepoStatus.SUSPENDED ? "Suspended"
-        : status == RepoStatus.YOURSELF ? "Literally Yourself"
-        : status == RepoStatus.BLOCKING ? "Blocking"
-        : status == RepoStatus.BLOCKEDBY ? "Blocked by"
-        : RepoStatus.BLOCKEDBY | RepoStatus.BLOCKING ? "Mutual Block"
-        : "";
-
-      if (status !== undefined) {
-        tmpFollows.push({
-          did: follow.subject,
-          handle: handle,
-          uri: record.uri,
-          status: status,
-          status_label: status_label,
-          toDelete: false,
-          visible: true,
-        });
-      }
-      setProgress(progress() + 1);
-      if (progress() == followCount()) setFollowRecords(tmpFollows);
-    });
+        if (status !== undefined) {
+          tmpFollows.push({
+            did: follow.subject,
+            handle: handle,
+            uri: record.uri,
+            status: status,
+            status_label: status_label,
+            toDelete: false,
+            visible: true,
+          });
+        }
+        setProgress(progress() + 1);
+        if (progress() == followCount()) setFollowRecords(tmpFollows);
+      });
+    }
   };
 
   const unfollow = async () => {
