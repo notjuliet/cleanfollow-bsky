@@ -144,6 +144,7 @@ const Login: Component = () => {
 
   const logoutBsky = async () => {
     await agent.signOut();
+    setLoginState(false);
   };
 
   return (
