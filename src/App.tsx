@@ -169,7 +169,12 @@ const Login: Component = () => {
           </button>
         </form>
         <div class="mt-3">
-          Remember to use your main password, not an app password.
+          <p>Remember to use your main password, not an app password.</p>
+          <p>The session is only stored on your browser.</p>
+          <p>Make sure to check the URL you will be authenticated through.</p>
+          <p>
+            (<b>bsky.social</b> unless you are on a selfhosted server)
+          </p>
         </div>
       </Show>
       <Show when={loginState() && handle()}>
