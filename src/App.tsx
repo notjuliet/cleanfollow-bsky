@@ -291,7 +291,11 @@ const Fetch: Component = () => {
           });
         }
         setProgress(progress() + 1);
-        if (progress() == followCount()) setFollowRecords(tmpFollows);
+        if (progress() == followCount()) {
+          setFollowRecords(tmpFollows);
+          setProgress(0);
+          setFollowCount(0);
+        }
       });
     }
   };
@@ -318,8 +322,6 @@ const Fetch: Component = () => {
     }
 
     setFollowRecords([]);
-    setProgress(0);
-    setFollowCount(0);
     setNotice(
       `Unfollowed ${writes.length} account${writes.length > 1 ? "s" : ""}`,
     );
@@ -327,7 +329,7 @@ const Fetch: Component = () => {
 
   return (
     <div class="flex flex-col items-center">
-      <Show when={!followRecords.length}>
+      <Show when={followCount() === 0 && !followRecords.length}>
         <button
           type="button"
           onclick={() => fetchHiddenAccounts()}
