@@ -24,7 +24,6 @@ import {
   resolveFromIdentity,
   type Session,
 } from "@atcute/oauth-browser-client";
-import { AiFillGithub, Bluesky, TbMoonStar, TbSun } from "./svg";
 
 configureOAuth({
   metadata: {
@@ -503,6 +502,7 @@ const App: Component = () => {
         <div class="basis-1/3">
           <div
             class="w-fit cursor-pointer"
+            title="Theme"
             onclick={() => {
               setTheme(theme() === "light" ? "dark" : "light");
               if (theme() === "dark")
@@ -512,8 +512,8 @@ const App: Component = () => {
             }}
           >
             {theme() === "dark" ?
-              <TbMoonStar class="size-6" />
-            : <TbSun class="size-6" />}
+              <div class="i-tabler-moon-stars text-xl" />
+            : <div class="i-tabler-sun text-xl" />}
           </div>
         </div>
         <div class="basis-1/3 text-center text-xl font-bold">
@@ -521,16 +521,18 @@ const App: Component = () => {
         </div>
         <div class="justify-right flex basis-1/3 gap-x-2">
           <a
+            title="Bluesky"
             href="https://bsky.app/profile/did:plc:b3pn34agqqchkaf75v7h43dk"
             target="_blank"
           >
-            <Bluesky class="size-6" />
+            <div class="i-fa6-brands-bluesky text-xl" />
           </a>
           <a
+            title="GitHub"
             href="https://github.com/notjuliet/cleanfollow-bsky"
             target="_blank"
           >
-            <AiFillGithub class="size-6" />
+            <div class="i-bi-github text-xl" />
           </a>
         </div>
       </div>
