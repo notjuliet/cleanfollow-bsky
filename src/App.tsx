@@ -292,14 +292,13 @@ const Fetch: Component = () => {
         }
         setProgress(progress() + 1);
         if (progress() === followCount()) {
+          if (tmpFollows.length === 0) setNotice("No accounts to unfollow");
           setFollowRecords(tmpFollows);
           setProgress(0);
           setFollowCount(0);
         }
       });
     }
-    if (progress() === followCount() && followRecords.length === 0)
-      setNotice("No accounts to unfollow");
   };
 
   const unfollow = async () => {
