@@ -14,8 +14,8 @@
     "prettier": "^3.4.2",
     "prettier-plugin-tailwindcss": "^0.6.9",
     "typescript": "^5.7.2",
-    "unocss": "^0.65.1",
-    "vite": "^6.0.3",
+    "unocss": "^0.65.2",
+    "vite": "^6.0.5",
     "vite-plugin-solid": "^2.11.0"
   },
   "dependencies": {
