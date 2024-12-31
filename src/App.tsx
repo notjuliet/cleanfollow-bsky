@@ -179,12 +179,12 @@ const Login: Component = () => {
       <Show when={loginState() && handle()}>
         <div class="mb-4">
           Logged in as @{handle()}
-          <span
-            class="ml-2 cursor-pointer text-red-500 dark:text-red-400"
+          <button
+            class="ml-2 bg-transparent text-red-500 dark:text-red-400"
             onclick={() => logoutBsky()}
           >
             Logout
-          </span>
+          </button>
         </div>
       </Show>
       <Show when={notice()}>
