@@ -472,9 +472,31 @@ const Follows: Component = () => {
                 <div>
                   <label for={"record" + index()} class="flex flex-col">
                     <Show when={record.handle.length}>
-                      <span>@{record.handle}</span>
+                      <span class="flex items-center gap-x-1">
+                        @{record.handle}
+                        <a
+                          href={`https://bsky.app/profile/${record.did}`}
+                          target="_blank"
+                          class="flex items-center text-blue-500 hover:underline dark:text-blue-400"
+                        >
+                          <button class="i-tabler-external-link text-sm" />
+                        </a>
+                      </span>
                     </Show>
-                    <span>{record.did}</span>
+                    <span class="flex items-center gap-x-1">
+                      {record.did}
+                      <a
+                        href={
+                          record.did.startsWith("did:plc:") ?
+                            `https://web.plc.directory/did/${record.did}`
+                          : `https://${record.did.replace("did:web:", "")}/.well-known/did.json`
+                        }
+                        target="_blank"
+                        class="flex items-center text-blue-500 hover:underline dark:text-blue-400"
+                      >
+                        <button class="i-tabler-external-link text-sm" />
+                      </a>
+                    </span>
                     <span>{record.status_label}</span>
                   </label>
                 </div>
@@ -527,14 +549,14 @@ const App: Component = () => {
             href="https://bsky.app/profile/did:plc:b3pn34agqqchkaf75v7h43dk"
             target="_blank"
           >
-            <div class="i-fa6-brands-bluesky text-xl" />
+            <button class="i-fa6-brands-bluesky text-xl" />
           </a>
           <a
             title="GitHub"
             href="https://github.com/notjuliet/cleanfollow-bsky"
             target="_blank"
           >
-            <div class="i-bi-github text-xl" />
+            <button class="i-bi-github text-xl" />
           </a>
         </div>
       </div>
