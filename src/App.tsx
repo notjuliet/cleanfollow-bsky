@@ -477,9 +477,12 @@ const Follows: Component = () => {
                         <a
                           href={`https://bsky.app/profile/${record.did}`}
                           target="_blank"
-                          class="flex items-center text-blue-500 hover:underline dark:text-blue-400"
+                          class="group/tooltip relative flex items-center"
                         >
-                          <button class="i-tabler-external-link text-sm" />
+                          <button class="i-tabler-external-link text-sm text-blue-500 dark:text-blue-400" />
+                          <span class="left-50% dark:bg-dark-600 absolute top-5 hidden min-w-[13ch] -translate-x-1/2 rounded border border-neutral-500 bg-slate-200 p-1 text-xs group-hover/tooltip:block">
+                            Open on Bsky
+                          </span>
                         </a>
                       </span>
                     </Show>
@@ -492,9 +495,12 @@ const Follows: Component = () => {
                           : `https://${record.did.replace("did:web:", "")}/.well-known/did.json`
                         }
                         target="_blank"
-                        class="flex items-center text-blue-500 hover:underline dark:text-blue-400"
+                        class="group/tooltip relative flex items-center"
                       >
-                        <button class="i-tabler-external-link text-sm" />
+                        <button class="i-tabler-external-link text-sm text-blue-500 dark:text-blue-400" />
+                        <span class="left-50% dark:bg-dark-600 absolute top-5 hidden min-w-[8ch] -translate-x-1/2 rounded border border-neutral-500 bg-slate-200 p-1 text-xs group-hover/tooltip:block">
+                          Open DID document
+                        </span>
                       </a>
                     </span>
                     <span>{record.status_label}</span>
