@@ -480,7 +480,7 @@ const Follows: Component = () => {
                           class="group/tooltip relative flex items-center"
                         >
                           <button class="i-tabler-external-link text-sm text-blue-500 dark:text-blue-400" />
-                          <span class="left-50% dark:bg-dark-600 absolute top-5 hidden min-w-[13ch] -translate-x-1/2 rounded border border-neutral-500 bg-slate-200 p-1 text-center text-xs group-hover/tooltip:block">
+                          <span class="left-50% dark:bg-dark-600 pointer-events-none absolute top-5 hidden min-w-[14ch] -translate-x-1/2 rounded border border-neutral-500 bg-slate-200 p-1 text-center text-xs group-hover/tooltip:block">
                             Bluesky profile
                           </span>
                         </a>
@@ -498,7 +498,7 @@ const Follows: Component = () => {
                         class="group/tooltip relative flex items-center"
                       >
                         <button class="i-tabler-external-link text-sm text-blue-500 dark:text-blue-400" />
-                        <span class="left-50% dark:bg-dark-600 absolute top-5 hidden min-w-[12ch] -translate-x-1/2 rounded border border-neutral-500 bg-slate-200 p-1 text-center text-xs group-hover/tooltip:block">
+                        <span class="left-50% dark:bg-dark-600 pointer-events-none absolute top-5 hidden min-w-[14ch] -translate-x-1/2 rounded border border-neutral-500 bg-slate-200 p-1 text-center text-xs group-hover/tooltip:block">
                           DID document
                         </span>
                       </a>
