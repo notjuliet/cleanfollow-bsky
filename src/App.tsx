@@ -8,7 +8,7 @@ import {
 } from "solid-js";
 import { createStore } from "solid-js/store";
 
-import { XRPC } from "@atcute/client";
+import { CredentialManager, XRPC } from "@atcute/client";
 import {
   AppBskyGraphFollow,
   At,
@@ -55,6 +55,8 @@ const [followRecords, setFollowRecords] = createStore<FollowRecord[]>([]);
 const [loginState, setLoginState] = createSignal(false);
 let rpc: XRPC;
 let agent: OAuthUserAgent;
+let manager: CredentialManager;
+let agentDID: string;
 
 const resolveDid = async (did: string) => {
   const res = await fetch(
@@ -77,6 +79,7 @@ const resolveDid = async (did: string) => {
 
 const Login: Component = () => {
   const [loginInput, setLoginInput] = createSignal("");
+  const [password, setPassword] = createSignal("");
   const [handle, setHandle] = createSignal("");
   const [notice, setNotice] = createSignal("");
 
@@ -113,6 +116,7 @@ const Login: Component = () => {
     if (session) {
       agent = new OAuthUserAgent(session);
       rpc = new XRPC({ handler: agent });
+      agentDID = agent.sub;
 
       setLoginState(true);
       setHandle(await resolveDid(agent.sub));
@@ -121,23 +125,61 @@ const Login: Component = () => {
     setNotice("");
   });
 
-  const loginBsky = async (handle: string) => {
-    try {
-      setNotice(`Resolving your identity...`);
-      const resolved = await resolveFromIdentity(handle);
+  const getPDS = async (did: string) => {
+    const res = await fetch(
+      did.startsWith("did:web") ?
+        `https://${did.split(":")[2]}/.well-known/did.json`
+      : "https://plc.directory/" + did,
+    );
 
-      setNotice(`Contacting your data server...`);
-      const authUrl = await createAuthorizationUrl({
-        scope: import.meta.env.VITE_OAUTH_SCOPE,
-        ...resolved,
+    return res.json().then((doc: any) => {
+      for (const service of doc.service) {
+        if (service.id === "#atproto_pds") return service.serviceEndpoint;
+      }
+    });
+  };
+
+  const resolveHandle = async (handle: string) => {
+    const rpc = new XRPC({
+      handler: new CredentialManager({
+        service: "https://public.api.bsky.app",
+      }),
+    });
+    const res = await rpc.get("com.atproto.identity.resolveHandle", {
+      params: { handle: handle },
+    });
+    return res.data.did;
+  };
+
+  const loginBsky = async (login: string) => {
+    if (password()) {
+      agentDID = login.startsWith("did:") ? login : await resolveHandle(login);
+      manager = new CredentialManager({ service: await getPDS(agentDID) });
+      rpc = new XRPC({ handler: manager });
+
+      await manager.login({
+        identifier: agentDID,
+        password: password(),
       });
+      setLoginState(true);
+    } else {
+      try {
+        setNotice(`Resolving your identity...`);
+        const resolved = await resolveFromIdentity(login);
 
-      setNotice(`Redirecting...`);
-      await new Promise((resolve) => setTimeout(resolve, 250));
+        setNotice(`Contacting your data server...`);
+        const authUrl = await createAuthorizationUrl({
+          scope: import.meta.env.VITE_OAUTH_SCOPE,
+          ...resolved,
+        });
 
-      location.assign(authUrl);
-    } catch {
-      setNotice("Error during OAuth login");
+        setNotice(`Redirecting...`);
+        await new Promise((resolve) => setTimeout(resolve, 250));
+
+        location.assign(authUrl);
+      } catch {
+        setNotice("Error during OAuth login");
+      }
     }
   };
 
@@ -160,6 +202,16 @@ const Login: Component = () => {
             class="dark:bg-dark-100 mb-2 rounded-lg border border-gray-400 px-2 py-1 focus:outline-none focus:ring-1 focus:ring-gray-300"
             onInput={(e) => setLoginInput(e.currentTarget.value)}
           />
+          <label for="password" class="ml-0.5">
+            App Password
+          </label>
+          <input
+            type="password"
+            id="password"
+            placeholder="leave empty for oauth"
+            class="dark:bg-dark-100 mb-2 rounded-lg border border-gray-400 px-2 py-1 focus:outline-none focus:ring-1 focus:ring-gray-300"
+            onInput={(e) => setPassword(e.currentTarget.value)}
+          />
           <button
             onclick={() => loginBsky(loginInput())}
             class="rounded bg-blue-600 py-1.5 font-bold text-slate-100 hover:bg-blue-700"
@@ -167,14 +219,6 @@ const Login: Component = () => {
             Login
           </button>
         </form>
-        <div class="mt-3">
-          <p>Remember to use your main password, not an app password.</p>
-          <p>The session is only stored on your browser.</p>
-          <p>Make sure to check the URL you will be authenticated through.</p>
-          <p>
-            (<b>bsky.social</b> unless you are on a selfhosted server)
-          </p>
-        </div>
       </Show>
       <Show when={loginState() && handle()}>
         <div class="mb-4">
@@ -205,7 +249,7 @@ const Fetch: Component = () => {
       const fetchPage = async (cursor?: string) => {
         return await rpc.get("com.atproto.repo.listRecords", {
           params: {
-            repo: agent.sub,
+            repo: agentDID,
             collection: "app.bsky.graph.follow",
             limit: PAGE_LIMIT,
             cursor: cursor,
@@ -253,7 +297,7 @@ const Fetch: Component = () => {
               viewer.blocking || viewer.blockingByList ?
                 RepoStatus.BLOCKEDBY | RepoStatus.BLOCKING
               : RepoStatus.BLOCKEDBY;
-          } else if (res.data.did.includes(agent.sub)) {
+          } else if (res.data.did.includes(agentDID)) {
             status = RepoStatus.YOURSELF;
           } else if (viewer.blocking || viewer.blockingByList) {
             status = RepoStatus.BLOCKING;
@@ -315,7 +359,7 @@ const Fetch: Component = () => {
     for (let i = 0; i < writes.length; i += BATCHSIZE) {
       await rpc.call("com.atproto.repo.applyWrites", {
         data: {
-          repo: agent.sub,
+          repo: agentDID,
           writes: writes.slice(i, i + BATCHSIZE),
         },
       });
