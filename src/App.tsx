@@ -38,7 +38,8 @@ enum RepoStatus {
   DELETED = 1 << 2,
   DEACTIVATED = 1 << 3,
   SUSPENDED = 1 << 4,
-  YOURSELF = 1 << 5,
+  HIDDEN = 1 << 5,
+  YOURSELF = 1 << 6,
 }
 
 type FollowRecord = {
@@ -292,7 +293,9 @@ const Fetch: Component = () => {
           handle = res.data.handle;
           const viewer = res.data.viewer!;
 
-          if (viewer.blockedBy) {
+          if (res.data.labels?.some((label) => label.val === "!hide")) {
+            status = RepoStatus.HIDDEN;
+          } else if (viewer.blockedBy) {
             status =
               viewer.blocking || viewer.blockingByList ?
                 RepoStatus.BLOCKEDBY | RepoStatus.BLOCKING
@@ -319,6 +322,7 @@ const Fetch: Component = () => {
           : status == RepoStatus.YOURSELF ? "Literally Yourself"
           : status == RepoStatus.BLOCKING ? "Blocking"
           : status == RepoStatus.BLOCKEDBY ? "Blocked by"
+          : status == RepoStatus.HIDDEN ? "Hidden by moderation service"
           : RepoStatus.BLOCKEDBY | RepoStatus.BLOCKING ? "Mutual Block"
           : "";
 
@@ -429,6 +433,7 @@ const Follows: Component = () => {
     { status: RepoStatus.SUSPENDED, label: "Suspended" },
     { status: RepoStatus.BLOCKEDBY, label: "Blocked By" },
     { status: RepoStatus.BLOCKING, label: "Blocking" },
+    { status: RepoStatus.HIDDEN, label: "Hidden" },
   ];
 
   return (
@@ -524,7 +529,7 @@ const Follows: Component = () => {
                           class="group/tooltip relative flex items-center"
                         >
                           <button class="i-tabler-external-link text-sm text-blue-500 dark:text-blue-400" />
-                          <span class="left-50% dark:bg-dark-600 pointer-events-none absolute top-5 hidden min-w-[14ch] -translate-x-1/2 rounded border border-neutral-500 bg-slate-200 p-1 text-center text-xs group-hover/tooltip:block">
+                          <span class="left-50% dark:bg-dark-600 pointer-events-none absolute top-5 z-10 hidden w-[14ch] -translate-x-1/2 rounded border border-neutral-500 bg-slate-200 p-1 text-center text-xs group-hover/tooltip:block">
                             Bluesky profile
                           </span>
                         </a>
@@ -542,7 +547,7 @@ const Follows: Component = () => {
                         class="group/tooltip relative flex items-center"
                       >
                         <button class="i-tabler-external-link text-sm text-blue-500 dark:text-blue-400" />
-                        <span class="left-50% dark:bg-dark-600 pointer-events-none absolute top-5 hidden min-w-[14ch] -translate-x-1/2 rounded border border-neutral-500 bg-slate-200 p-1 text-center text-xs group-hover/tooltip:block">
+                        <span class="left-50% dark:bg-dark-600 pointer-events-none absolute top-5 z-10 hidden w-[14ch] -translate-x-1/2 rounded border border-neutral-500 bg-slate-200 p-1 text-center text-xs group-hover/tooltip:block">
                           DID document
                         </span>
                       </a>
