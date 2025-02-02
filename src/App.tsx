@@ -602,18 +602,14 @@ const App: Component = () => {
         </div>
         <div class="justify-right flex basis-1/3 gap-x-2">
           <a
-            title="Bluesky"
-            href="https://bsky.app/profile/did:plc:b3pn34agqqchkaf75v7h43dk"
-            target="_blank"
-          >
-            <button class="i-fa6-brands-bluesky text-xl" />
-          </a>
-          <a
             title="GitHub"
             href="https://github.com/notjuliet/cleanfollow-bsky"
             target="_blank"
           >
             <button class="i-bi-github text-xl" />
+          </a>
+          <a title="Donate" href="https://ko-fi.com/notjuliet" target="_blank">
+            <button class="i-simple-icons-kofi text-xl" />
           </a>
         </div>
       </div>
