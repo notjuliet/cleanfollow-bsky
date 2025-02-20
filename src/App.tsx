@@ -64,7 +64,10 @@ const resolveDid = async (did: string) => {
     did.startsWith("did:web") ?
       `https://${did.split(":")[2]}/.well-known/did.json`
     : "https://plc.directory/" + did,
-  );
+  ).catch((error: unknown) => {
+    console.warn("Failed to resolve DID", { error, did });
+  });
+  if (!res) return "";
 
   return res
     .json()
@@ -75,7 +78,10 @@ const resolveDid = async (did: string) => {
         }
       }
     })
-    .catch(() => "");
+    .catch((error: unknown) => {
+      console.warn("Failed to parse DID", { error, did });
+      return "";
+    });
 };
 
 const Login: Component = () => {
