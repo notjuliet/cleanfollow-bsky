@@ -9,19 +9,19 @@
     "serve": "vite preview"
   },
   "devDependencies": {
-    "@atcute/bluesky": "^1.0.12",
-    "@types/node": "^22.10.7",
-    "prettier": "^3.4.2",
-    "prettier-plugin-tailwindcss": "^0.6.10",
-    "typescript": "^5.7.3",
-    "unocss": "^65.4.2",
-    "vite": "^6.0.11",
-    "vite-plugin-solid": "^2.11.0"
+    "@atcute/bluesky": "^1.0.15",
+    "@types/node": "^22.14.0",
+    "prettier": "^3.5.3",
+    "prettier-plugin-tailwindcss": "^0.6.11",
+    "typescript": "^5.8.3",
+    "unocss": "66.1.0-beta.10",
+    "vite": "^6.2.5",
+    "vite-plugin-solid": "^2.11.6"
   },
   "dependencies": {
-    "@atcute/client": "^2.0.7",
-    "@atcute/oauth-browser-client": "^1.0.9",
-    "solid-js": "^1.9.4"
+    "@atcute/client": "^2.0.9",
+    "@atcute/oauth-browser-client": "^1.0.16",
+    "solid-js": "^1.9.5"
   },
   "packageManager": "pnpm@9.12.2+sha512.22721b3a11f81661ae1ec68ce1a7b879425a1ca5b991c975b074ac220b187ce56c708fe5db69f4c962c989452eee76c82877f4ee80f474cebd61ee13461b6228"
 }
