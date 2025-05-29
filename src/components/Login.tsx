@@ -9,6 +9,7 @@ import {
 } from "@atcute/oauth-browser-client";
 import { At } from "@atcute/client/lexicons";
 import { CredentialManager, XRPC } from "@atcute/client";
+import { resolveDid } from "../utils/ResolveDid.tsx";
 
 export function Login(props) {
   const [loginInput, setLoginInput] = createSignal("");

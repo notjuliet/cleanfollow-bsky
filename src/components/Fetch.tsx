@@ -2,35 +2,12 @@ import { createSignal, Show } from "solid-js";
 import FollowRecord from "../types/FollowRecord.tsx";
 import { RepoStatus } from "../enums/RepoStatus.tsx";
 import { AppBskyGraphFollow, Brand, ComAtprotoRepoApplyWrites } from "@atcute/client/lexicons";
+import { resolveDid } from "../utils/ResolveDid.tsx";
 
 export function Fetch(props) {
   const [progress, setProgress] = createSignal(0);
   const [followCount, setFollowCount] = createSignal(0);
   const [notice, setNotice] = createSignal("");
-  const resolveDid = async (did: string) => {
-    const res = await fetch(
-      did.startsWith("did:web") ?
-        `https://${did.split(":")[2]}/.well-known/did.json`
-        : "https://plc.directory/" + did,
-    ).catch((error: unknown) => {
-      console.warn("Failed to resolve DID", { error, did });
-    });
-    if (!res) return "";
-
-    return res
-      .json()
-      .then((doc) => {
-        for (const alias of doc.alsoKnownAs) {
-          if (alias.includes("at://")) {
-            return alias.split("//")[1];
-          }
-        }
-      })
-      .catch((error: unknown) => {
-        console.warn("Failed to parse DID", { error, did });
-        return "";
-      });
-  };
 
   const fetchHiddenAccounts = async () => {
     const fetchFollows = async () => {

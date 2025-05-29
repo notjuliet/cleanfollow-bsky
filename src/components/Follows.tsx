@@ -114,7 +114,10 @@ export function Follows(props) {
                     }
                   />
                 </div>
-                <Follower record={record} />
+                <Follower
+                  index={index()}
+                  record={record}
+                />
               </div>
             </Show>
           )}
