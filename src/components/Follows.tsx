@@ -17,7 +17,7 @@ export function Follows(props) {
   ) {
     const range = props.followRecords
       .map((record, index) => {
-        if (record.status && status) return index;
+        if (record.status === status) return index;
       })
       .filter((i) => i !== undefined);
     props.setFollowRecords(range, field, value);
