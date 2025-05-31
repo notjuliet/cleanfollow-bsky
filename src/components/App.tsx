@@ -4,12 +4,12 @@ import {
   Show,
 } from "solid-js";
 import { createStore } from "solid-js/store";
-import FollowRecord from "./types/FollowRecord.tsx";
+import FollowRecord from "../types/FollowRecord.tsx";
 
-import { Login } from "./components/Login.tsx";
-import { Fetch } from "./components/Fetch.tsx";
-import { Header } from "./components/Header.tsx";
-import { Follows } from "./components/Follows.tsx";
+import { Login } from "./Login.tsx";
+import { Fetch } from "./Fetch.tsx";
+import { Header } from "./Header.tsx";
+import { Follows } from "./Follows.tsx";
 
 import {
   configureOAuth,
