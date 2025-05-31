@@ -1,3 +1,5 @@
+import { RepoStatus } from "../enums/RepoStatus.tsx";
+
 type FollowRecord = {
   did: string;
   handle: string;
