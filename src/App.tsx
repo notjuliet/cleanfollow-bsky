@@ -417,7 +417,7 @@ const Follows: Component = () => {
   const [selectedCount, setSelectedCount] = createSignal(0);
 
   createEffect(() => {
-    setSelectedCount(followRecords.filter((record) => record.toDelete).length);
+    setSelectedCount(followRecords.filter((record) => record.toDelete && record.visible).length);
   });
 
   function editRecords(
