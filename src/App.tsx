@@ -417,7 +417,7 @@ const Follows: Component = () => {
   const [selectedCount, setSelectedCount] = createSignal(0);
 
   createEffect(() => {
-    setSelectedCount(followRecords.filter((record) => record.toDelete).length);
+    setSelectedCount(followRecords.filter((record) => record.toDelete && record.visible).length);
   });
 
   function editRecords(
@@ -460,13 +460,13 @@ const Follows: Component = () => {
                     type="checkbox"
                     class="peer sr-only"
                     checked
-                    onChange={(e) =>
-                      editRecords(
-                        option.status,
-                        "visible",
-                        e.currentTarget.checked,
-                      )
-                    }
+                    onChange={(e) => {
+                      const isChecked = e.currentTarget.checked;
+                      editRecords(option.status, "visible", isChecked);
+                      if (!isChecked) {
+                        editRecords(option.status, "toDelete", false);
+                      }
+                    }}
                   />
                   <span class="peer relative h-5 w-9 rounded-full bg-gray-200 after:absolute after:start-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-blue-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rtl:peer-checked:after:-translate-x-full dark:border-gray-600 dark:bg-gray-700 dark:peer-focus:ring-blue-800"></span>
                   <span class="ms-3 select-none">{option.label}</span>
