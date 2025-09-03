@@ -1,20 +1,7 @@
-import {
-  type Component,
-  createEffect,
-  createSignal,
-  For,
-  onMount,
-  Show,
-} from "solid-js";
+import { createEffect, createSignal, For, onMount, Show } from "solid-js";
 import { createStore } from "solid-js/store";
 
-import { CredentialManager, XRPC } from "@atcute/client";
-import {
-  AppBskyGraphFollow,
-  At,
-  Brand,
-  ComAtprotoRepoApplyWrites,
-} from "@atcute/client/lexicons";
+import { CredentialManager, Client } from "@atcute/client";
 import {
   configureOAuth,
   createAuthorizationUrl,
@@ -24,6 +11,9 @@ import {
   resolveFromIdentity,
   type Session,
 } from "@atcute/oauth-browser-client";
+import { $type, Did, Handle } from "@atcute/lexicons";
+import { ComAtprotoRepoApplyWrites } from "@atcute/atproto";
+import { AppBskyGraphFollow } from "@atcute/bluesky";
 
 configureOAuth({
   metadata: {
@@ -54,10 +44,9 @@ type FollowRecord = {
 
 const [followRecords, setFollowRecords] = createStore<FollowRecord[]>([]);
 const [loginState, setLoginState] = createSignal(false);
-let rpc: XRPC;
+let rpc: Client;
 let agent: OAuthUserAgent;
 let manager: CredentialManager;
-let agentDID: string;
 
 const resolveDid = async (did: string) => {
   const res = await fetch(
@@ -84,7 +73,7 @@ const resolveDid = async (did: string) => {
     });
 };
 
-const Login: Component = () => {
+const Login = () => {
   const [loginInput, setLoginInput] = createSignal("");
   const [password, setPassword] = createSignal("");
   const [handle, setHandle] = createSignal("");
@@ -109,7 +98,7 @@ const Login: Component = () => {
 
         if (lastSignedIn) {
           try {
-            return await getSession(lastSignedIn as At.DID);
+            return await getSession(lastSignedIn as Did);
           } catch (err) {
             localStorage.removeItem("lastSignedIn");
             throw err;
@@ -122,8 +111,7 @@ const Login: Component = () => {
 
     if (session) {
       agent = new OAuthUserAgent(session);
-      rpc = new XRPC({ handler: agent });
-      agentDID = agent.sub;
+      rpc = new Client({ handler: agent });
 
       setLoginState(true);
       setHandle(await resolveDid(agent.sub));
@@ -147,22 +135,23 @@ const Login: Component = () => {
   };
 
   const resolveHandle = async (handle: string) => {
-    const rpc = new XRPC({
+    const rpc = new Client({
       handler: new CredentialManager({
         service: "https://public.api.bsky.app",
       }),
     });
     const res = await rpc.get("com.atproto.identity.resolveHandle", {
-      params: { handle: handle },
+      params: { handle: handle as Handle },
     });
+    if (!res.ok) throw new Error(res.data.error);
     return res.data.did;
   };
 
   const loginBsky = async (login: string) => {
     if (password()) {
-      agentDID = login.startsWith("did:") ? login : await resolveHandle(login);
+      const agentDID = login.startsWith("did:") ? login : await resolveHandle(login);
       manager = new CredentialManager({ service: await getPDS(agentDID) });
-      rpc = new XRPC({ handler: manager });
+      rpc = new Client({ handler: manager });
 
       await manager.login({
         identifier: agentDID,
@@ -245,7 +234,7 @@ const Login: Component = () => {
   );
 };
 
-const Fetch: Component = () => {
+const Fetch = () => {
   const [progress, setProgress] = createSignal(0);
   const [followCount, setFollowCount] = createSignal(0);
   const [notice, setNotice] = createSignal("");
@@ -256,7 +245,7 @@ const Fetch: Component = () => {
       const fetchPage = async (cursor?: string) => {
         return await rpc.get("com.atproto.repo.listRecords", {
           params: {
-            repo: agentDID,
+            repo: agent.sub,
             collection: "app.bsky.graph.follow",
             limit: PAGE_LIMIT,
             cursor: cursor,
@@ -265,12 +254,14 @@ const Fetch: Component = () => {
       };
 
       let res = await fetchPage();
+      if (!res.ok) throw new Error(res.data.error);
       let follows = res.data.records;
       setNotice(`Fetching follows: ${follows.length}`);
 
       while (res.data.cursor && res.data.records.length >= PAGE_LIMIT) {
         setNotice(`Fetching follows: ${follows.length}`);
         res = await fetchPage(res.data.cursor);
+        if (!res.ok) throw new Error(res.data.error);
         follows = follows.concat(res.data.records);
       }
 
@@ -288,7 +279,7 @@ const Fetch: Component = () => {
       if (follows.length > 1000) await timer(1000);
       follows.slice(i, i + 10).forEach(async (record) => {
         let status: RepoStatus | undefined = undefined;
-        const follow = record.value as AppBskyGraphFollow.Record;
+        const follow = record.value as AppBskyGraphFollow.Main;
         let handle = "";
 
         try {
@@ -296,6 +287,7 @@ const Fetch: Component = () => {
             params: { actor: follow.subject },
           });
 
+          if (!res.ok) throw new Error(res.data.error);
           handle = res.data.handle;
           const viewer = res.data.viewer!;
 
@@ -306,7 +298,7 @@ const Fetch: Component = () => {
               viewer.blocking || viewer.blockingByList ?
                 RepoStatus.BLOCKEDBY | RepoStatus.BLOCKING
               : RepoStatus.BLOCKEDBY;
-          } else if (res.data.did.includes(agentDID)) {
+          } else if (res.data.did.includes(agent.sub)) {
             status = RepoStatus.YOURSELF;
           } else if (viewer.blocking || viewer.blockingByList) {
             status = RepoStatus.BLOCKING;
@@ -357,7 +349,7 @@ const Fetch: Component = () => {
   const unfollow = async () => {
     const writes = followRecords
       .filter((record) => record.toDelete)
-      .map((record): Brand.Union<ComAtprotoRepoApplyWrites.Delete> => {
+      .map((record): $type.enforce<ComAtprotoRepoApplyWrites.Delete> => {
         return {
           $type: "com.atproto.repo.applyWrites#delete",
           collection: "app.bsky.graph.follow",
@@ -367,18 +359,16 @@ const Fetch: Component = () => {
 
     const BATCHSIZE = 200;
     for (let i = 0; i < writes.length; i += BATCHSIZE) {
-      await rpc.call("com.atproto.repo.applyWrites", {
-        data: {
-          repo: agentDID,
+      await rpc.post("com.atproto.repo.applyWrites", {
+        input: {
+          repo: agent.sub,
           writes: writes.slice(i, i + BATCHSIZE),
         },
       });
     }
 
     setFollowRecords([]);
-    setNotice(
-      `Unfollowed ${writes.length} account${writes.length > 1 ? "s" : ""}`,
-    );
+    setNotice(`Unfollowed ${writes.length} account${writes.length > 1 ? "s" : ""}`);
   };
 
   return (
@@ -413,18 +403,14 @@ const Fetch: Component = () => {
   );
 };
 
-const Follows: Component = () => {
+const Follows = () => {
   const [selectedCount, setSelectedCount] = createSignal(0);
 
   createEffect(() => {
     setSelectedCount(followRecords.filter((record) => record.toDelete).length);
   });
 
-  function editRecords(
-    status: RepoStatus,
-    field: keyof FollowRecord,
-    value: boolean,
-  ) {
+  function editRecords(status: RepoStatus, field: keyof FollowRecord, value: boolean) {
     const range = followRecords
       .map((record, index) => {
         if (record.status & status) return index;
@@ -460,13 +446,7 @@ const Follows: Component = () => {
                     type="checkbox"
                     class="peer sr-only"
                     checked
-                    onChange={(e) =>
-                      editRecords(
-                        option.status,
-                        "visible",
-                        e.currentTarget.checked,
-                      )
-                    }
+                    onChange={(e) => editRecords(option.status, "visible", e.currentTarget.checked)}
                   />
                   <span class="peer relative h-5 w-9 rounded-full bg-gray-200 after:absolute after:start-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-blue-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rtl:peer-checked:after:-translate-x-full dark:border-gray-600 dark:bg-gray-700 dark:peer-focus:ring-blue-800"></span>
                   <span class="ms-3 select-none">{option.label}</span>
@@ -477,13 +457,7 @@ const Follows: Component = () => {
                   type="checkbox"
                   id={option.label}
                   class="h-4 w-4 rounded"
-                  onChange={(e) =>
-                    editRecords(
-                      option.status,
-                      "toDelete",
-                      e.currentTarget.checked,
-                    )
-                  }
+                  onChange={(e) => editRecords(option.status, "toDelete", e.currentTarget.checked)}
                 />
                 <label for={option.label} class="ml-2 select-none">
                   Select All
@@ -504,8 +478,7 @@ const Follows: Component = () => {
             <Show when={record.visible}>
               <div
                 classList={{
-                  "mb-1 flex items-center border-b dark:border-b-gray-500 py-1":
-                    true,
+                  "mb-1 flex items-center border-b dark:border-b-gray-500 py-1": true,
                   "bg-red-300 dark:bg-rose-800": record.toDelete,
                 }}
               >
@@ -515,13 +488,7 @@ const Follows: Component = () => {
                     id={"record" + index()}
                     class="h-4 w-4 rounded"
                     checked={record.toDelete}
-                    onChange={(e) =>
-                      setFollowRecords(
-                        index(),
-                        "toDelete",
-                        e.currentTarget.checked,
-                      )
-                    }
+                    onChange={(e) => setFollowRecords(index(), "toDelete", e.currentTarget.checked)}
                   />
                 </div>
                 <div>
@@ -570,7 +537,7 @@ const Follows: Component = () => {
   );
 };
 
-const App: Component = () => {
+const App = () => {
   const [theme, setTheme] = createSignal(
     (
       localStorage.theme === "dark" ||
@@ -590,8 +557,7 @@ const App: Component = () => {
             title="Theme"
             onclick={() => {
               setTheme(theme() === "light" ? "dark" : "light");
-              if (theme() === "dark")
-                document.documentElement.classList.add("dark");
+              if (theme() === "dark") document.documentElement.classList.add("dark");
               else document.documentElement.classList.remove("dark");
               localStorage.theme = theme();
             }}
@@ -607,11 +573,7 @@ const App: Component = () => {
           </a>
         </div>
         <div class="justify-right flex basis-1/3 gap-x-2">
-          <a
-            title="GitHub"
-            href="https://github.com/notjuliet/cleanfollow-bsky"
-            target="_blank"
-          >
+          <a title="GitHub" href="https://github.com/notjuliet/cleanfollow-bsky" target="_blank">
             <button class="i-bi-github text-xl" />
           </a>
           <a title="Donate" href="https://ko-fi.com/notjuliet" target="_blank">
