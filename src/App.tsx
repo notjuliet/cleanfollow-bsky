@@ -282,12 +282,20 @@ const Fetch = () => {
         const follow = record.value as AppBskyGraphFollow.Main;
         let handle = "";
 
-        try {
-          const res = await rpc.get("app.bsky.actor.getProfile", {
-            params: { actor: follow.subject },
-          });
+        const res = await rpc.get("app.bsky.actor.getProfile", {
+          params: { actor: follow.subject },
+        });
 
-          if (!res.ok) throw new Error(res.data.error);
+        if (!res.ok) {
+          handle = await resolveDid(follow.subject);
+          const e = res.data as any;
+
+          status =
+            e.message.includes("not found") ? RepoStatus.DELETED
+            : e.message.includes("deactivated") ? RepoStatus.DEACTIVATED
+            : e.message.includes("suspended") ? RepoStatus.SUSPENDED
+            : undefined;
+        } else {
           handle = res.data.handle;
           const viewer = res.data.viewer!;
 
@@ -303,14 +311,6 @@ const Fetch = () => {
           } else if (viewer.blocking || viewer.blockingByList) {
             status = RepoStatus.BLOCKING;
           }
-        } catch (e: any) {
-          handle = await resolveDid(follow.subject);
-
-          status =
-            e.message.includes("not found") ? RepoStatus.DELETED
-            : e.message.includes("deactivated") ? RepoStatus.DEACTIVATED
-            : e.message.includes("suspended") ? RepoStatus.SUSPENDED
-            : undefined;
         }
 
         const status_label =
