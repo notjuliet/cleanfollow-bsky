@@ -11,7 +11,7 @@ import {
   resolveFromIdentity,
   type Session,
 } from "@atcute/oauth-browser-client";
-import { $type, Did, Handle } from "@atcute/lexicons";
+import { $type, ActorIdentifier, Did, Handle } from "@atcute/lexicons";
 import { ComAtprotoRepoApplyWrites } from "@atcute/atproto";
 import { AppBskyGraphFollow } from "@atcute/bluesky";
 
@@ -47,6 +47,7 @@ const [loginState, setLoginState] = createSignal(false);
 let rpc: Client;
 let agent: OAuthUserAgent;
 let manager: CredentialManager;
+let agentDID: string;
 
 const resolveDid = async (did: string) => {
   const res = await fetch(
@@ -112,6 +113,7 @@ const Login = () => {
     if (session) {
       agent = new OAuthUserAgent(session);
       rpc = new Client({ handler: agent });
+      agentDID = agent.sub;
 
       setLoginState(true);
       setHandle(await resolveDid(agent.sub));
@@ -149,7 +151,7 @@ const Login = () => {
 
   const loginBsky = async (login: string) => {
     if (password()) {
-      const agentDID = login.startsWith("did:") ? login : await resolveHandle(login);
+      agentDID = login.startsWith("did:") ? login : await resolveHandle(login);
       manager = new CredentialManager({ service: await getPDS(agentDID) });
       rpc = new Client({ handler: manager });
 
@@ -245,7 +247,7 @@ const Fetch = () => {
       const fetchPage = async (cursor?: string) => {
         return await rpc.get("com.atproto.repo.listRecords", {
           params: {
-            repo: agent.sub,
+            repo: agentDID as ActorIdentifier,
             collection: "app.bsky.graph.follow",
             limit: PAGE_LIMIT,
             cursor: cursor,
@@ -306,7 +308,7 @@ const Fetch = () => {
               viewer.blocking || viewer.blockingByList ?
                 RepoStatus.BLOCKEDBY | RepoStatus.BLOCKING
               : RepoStatus.BLOCKEDBY;
-          } else if (res.data.did.includes(agent.sub)) {
+          } else if (res.data.did.includes(agentDID)) {
             status = RepoStatus.YOURSELF;
           } else if (viewer.blocking || viewer.blockingByList) {
             status = RepoStatus.BLOCKING;
@@ -361,7 +363,7 @@ const Fetch = () => {
     for (let i = 0; i < writes.length; i += BATCHSIZE) {
       await rpc.post("com.atproto.repo.applyWrites", {
         input: {
-          repo: agent.sub,
+          repo: agentDID as ActorIdentifier,
           writes: writes.slice(i, i + BATCHSIZE),
         },
       });
