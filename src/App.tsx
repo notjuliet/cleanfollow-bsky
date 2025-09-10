@@ -278,7 +278,7 @@ const Fetch = () => {
 
     const timer = (ms: number) => new Promise((res) => setTimeout(res, ms));
     for (let i = 0; i < follows.length; i = i + 10) {
-      if (follows.length > 1000) await timer(1000);
+      if (follows.length > 1500) await timer(1000);
       follows.slice(i, i + 10).forEach(async (record) => {
         let status: RepoStatus | undefined = undefined;
         const follow = record.value as AppBskyGraphFollow.Main;
