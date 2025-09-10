@@ -2,8 +2,6 @@
 import { render } from "solid-js/web";
 
 import App from "./App";
-import "virtual:uno.css";
-import "./tailwind-compat.css";
-import "./icons.css"
+import "./index.css";
 
 render(() => <App />, document.getElementById("root") as HTMLElement);

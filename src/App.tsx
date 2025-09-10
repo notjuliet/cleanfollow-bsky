@@ -1,7 +1,10 @@
 import { createEffect, createSignal, For, onMount, Show } from "solid-js";
 import { createStore } from "solid-js/store";
 
-import { CredentialManager, Client } from "@atcute/client";
+import { ComAtprotoRepoApplyWrites } from "@atcute/atproto";
+import { AppBskyGraphFollow } from "@atcute/bluesky";
+import { Client, CredentialManager } from "@atcute/client";
+import { $type, ActorIdentifier, Did, Handle } from "@atcute/lexicons";
 import {
   configureOAuth,
   createAuthorizationUrl,
@@ -11,9 +14,6 @@ import {
   resolveFromIdentity,
   type Session,
 } from "@atcute/oauth-browser-client";
-import { $type, ActorIdentifier, Did, Handle } from "@atcute/lexicons";
-import { ComAtprotoRepoApplyWrites } from "@atcute/atproto";
-import { AppBskyGraphFollow } from "@atcute/bluesky";
 
 configureOAuth({
   metadata: {
@@ -197,7 +197,7 @@ const Login = () => {
             type="text"
             id="handle"
             placeholder="user.bsky.social"
-            class="dark:bg-dark-100 mb-2 rounded-lg border border-gray-400 px-2 py-1 focus:outline-none focus:ring-1 focus:ring-gray-300"
+            class="dark:bg-dark-100 mb-2 rounded-lg border border-gray-400 px-2 py-1 focus:ring-1 focus:ring-gray-300 focus:outline-none"
             onInput={(e) => setLoginInput(e.currentTarget.value)}
           />
           <label for="password" class="ml-0.5">
@@ -207,7 +207,7 @@ const Login = () => {
             type="password"
             id="password"
             placeholder="leave empty for oauth"
-            class="dark:bg-dark-100 mb-2 rounded-lg border border-gray-400 px-2 py-1 focus:outline-none focus:ring-1 focus:ring-gray-300"
+            class="dark:bg-dark-100 mb-2 rounded-lg border border-gray-400 px-2 py-1 focus:ring-1 focus:ring-gray-300 focus:outline-none"
             onInput={(e) => setPassword(e.currentTarget.value)}
           />
           <button
@@ -432,7 +432,7 @@ const Follows = () => {
 
   return (
     <div class="mt-6 flex flex-col sm:w-full sm:flex-row sm:justify-center">
-      <div class="dark:bg-dark-500 sticky top-0 mb-3 mr-5 flex w-full flex-wrap justify-around border-b border-b-gray-400 bg-slate-100 pb-3 sm:top-3 sm:mb-0 sm:w-auto sm:flex-col sm:self-start sm:border-none">
+      <div class="dark:bg-dark-500 sticky top-0 mr-5 mb-3 flex w-full flex-wrap justify-around border-b border-b-gray-400 bg-slate-100 pb-3 sm:top-3 sm:mb-0 sm:w-auto sm:flex-col sm:self-start sm:border-none">
         <For each={options}>
           {(option, index) => (
             <div
@@ -443,14 +443,14 @@ const Follows = () => {
               }}
             >
               <div>
-                <label class="mb-2 mt-1 inline-flex cursor-pointer items-center">
+                <label class="mt-1 mb-2 inline-flex items-center">
                   <input
                     type="checkbox"
                     class="peer sr-only"
                     checked
                     onChange={(e) => editRecords(option.status, "visible", e.currentTarget.checked)}
                   />
-                  <span class="peer relative h-5 w-9 rounded-full bg-gray-200 after:absolute after:start-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-blue-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rtl:peer-checked:after:-translate-x-full dark:border-gray-600 dark:bg-gray-700 dark:peer-focus:ring-blue-800"></span>
+                  <span class="peer relative h-5 w-9 rounded-full bg-gray-200 peer-checked:bg-blue-600 peer-focus:ring-4 peer-focus:ring-blue-300 peer-focus:outline-none after:absolute after:start-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white rtl:peer-checked:after:-translate-x-full dark:border-gray-600 dark:bg-gray-700 dark:peer-focus:ring-blue-800"></span>
                   <span class="ms-3 select-none">{option.label}</span>
                 </label>
               </div>
@@ -480,7 +480,7 @@ const Follows = () => {
             <Show when={record.visible}>
               <div
                 classList={{
-                  "mb-1 flex items-center border-b dark:border-b-gray-500 py-1": true,
+                  "mb-1 flex items-center border-b border-b-gray-300 dark:border-b-gray-500 py-1": true,
                   "bg-red-300 dark:bg-rose-800": record.toDelete,
                 }}
               >
@@ -503,7 +503,7 @@ const Follows = () => {
                           target="_blank"
                           class="group/tooltip relative flex items-center"
                         >
-                          <button class="i-tabler-external-link text-sm text-blue-500 dark:text-blue-400" />
+                          <button class="icon-[lucide--external-link] text-sm text-blue-500 dark:text-blue-400" />
                           <span class="left-50% dark:bg-dark-600 pointer-events-none absolute top-5 z-10 hidden w-[14ch] -translate-x-1/2 rounded border border-neutral-500 bg-slate-200 p-1 text-center text-xs group-hover/tooltip:block">
                             Bluesky profile
                           </span>
@@ -521,7 +521,7 @@ const Follows = () => {
                         target="_blank"
                         class="group/tooltip relative flex items-center"
                       >
-                        <button class="i-tabler-external-link text-sm text-blue-500 dark:text-blue-400" />
+                        <button class="icon-[lucide--external-link] text-sm text-blue-500 dark:text-blue-400" />
                         <span class="left-50% dark:bg-dark-600 pointer-events-none absolute top-5 z-10 hidden w-[14ch] -translate-x-1/2 rounded border border-neutral-500 bg-slate-200 p-1 text-center text-xs group-hover/tooltip:block">
                           DID document
                         </span>
@@ -555,7 +555,7 @@ const App = () => {
       <div class="mb-2 flex w-[20rem] items-center">
         <div class="basis-1/3">
           <div
-            class="w-fit cursor-pointer"
+            class="flex w-fit items-center"
             title="Theme"
             onclick={() => {
               setTheme(theme() === "light" ? "dark" : "light");
@@ -565,8 +565,8 @@ const App = () => {
             }}
           >
             {theme() === "dark" ?
-              <div class="i-tabler-moon-stars text-xl" />
-            : <div class="i-tabler-sun text-xl" />}
+              <div class="icon-[lucide--moon] text-xl" />
+            : <div class="icon-[lucide--sun] text-xl" />}
           </div>
         </div>
         <div class="basis-1/3 text-center text-xl font-bold">
@@ -574,12 +574,22 @@ const App = () => {
             cleanfollow
           </a>
         </div>
-        <div class="justify-right flex basis-1/3 gap-x-2">
-          <a title="GitHub" href="https://github.com/notjuliet/cleanfollow-bsky" target="_blank">
-            <button class="i-bi-github text-xl" />
+        <div class="flex basis-1/3 justify-end gap-x-2">
+          <a
+            class="flex items-center"
+            title="GitHub"
+            href="https://github.com/notjuliet/cleanfollow-bsky"
+            target="_blank"
+          >
+            <span class="icon-[simple-icons--github] text-xl"></span>
           </a>
-          <a title="Donate" href="https://ko-fi.com/notjuliet" target="_blank">
-            <button class="i-simple-icons-kofi text-xl" />
+          <a
+            class="flex items-center"
+            title="Donate"
+            href="https://ko-fi.com/notjuliet"
+            target="_blank"
+          >
+            <span class="icon-[simple-icons--kofi] text-xl"></span>
           </a>
         </div>
       </div>
