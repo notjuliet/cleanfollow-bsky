@@ -498,34 +498,34 @@ const Follows = () => {
                     <Show when={record.handle.length}>
                       <span class="flex items-center gap-x-1">
                         @{record.handle}
-                        <a
-                          href={`https://bsky.app/profile/${record.did}`}
-                          target="_blank"
-                          class="group/tooltip relative flex items-center"
-                        >
-                          <button class="icon-[lucide--external-link] text-sm text-blue-500 dark:text-blue-400" />
+                        <span class="group/tooltip relative flex items-center">
+                          <a
+                            class="icon-[lucide--external-link] text-sm text-blue-500 dark:text-blue-400"
+                            href={`https://bsky.app/profile/${record.did}`}
+                            target="_blank"
+                          ></a>
                           <span class="left-50% dark:bg-dark-600 pointer-events-none absolute top-5 z-10 hidden w-[14ch] -translate-x-1/2 rounded border border-neutral-500 bg-slate-200 p-1 text-center text-xs group-hover/tooltip:block">
                             Bluesky profile
                           </span>
-                        </a>
+                        </span>
                       </span>
                     </Show>
                     <span class="flex items-center gap-x-1">
                       {record.did}
-                      <a
-                        href={
-                          record.did.startsWith("did:plc:") ?
-                            `https://web.plc.directory/did/${record.did}`
-                          : `https://${record.did.replace("did:web:", "")}/.well-known/did.json`
-                        }
-                        target="_blank"
-                        class="group/tooltip relative flex items-center"
-                      >
-                        <button class="icon-[lucide--external-link] text-sm text-blue-500 dark:text-blue-400" />
+                      <span class="group/tooltip relative flex items-center">
+                        <a
+                          class="icon-[lucide--external-link] text-sm text-blue-500 dark:text-blue-400"
+                          href={
+                            record.did.startsWith("did:plc:") ?
+                              `https://web.plc.directory/did/${record.did}`
+                            : `https://${record.did.replace("did:web:", "")}/.well-known/did.json`
+                          }
+                          target="_blank"
+                        ></a>
                         <span class="left-50% dark:bg-dark-600 pointer-events-none absolute top-5 z-10 hidden w-[14ch] -translate-x-1/2 rounded border border-neutral-500 bg-slate-200 p-1 text-center text-xs group-hover/tooltip:block">
                           DID document
                         </span>
-                      </a>
+                      </span>
                     </span>
                     <span>{record.status_label}</span>
                   </label>
