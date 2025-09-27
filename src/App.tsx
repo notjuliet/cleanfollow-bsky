@@ -583,14 +583,6 @@ const App = () => {
           >
             <span class="icon-[simple-icons--github] text-xl"></span>
           </a>
-          <a
-            class="flex items-center"
-            title="Donate"
-            href="https://ko-fi.com/notjuliet"
-            target="_blank"
-          >
-            <span class="icon-[simple-icons--kofi] text-xl"></span>
-          </a>
         </div>
       </div>
       <div class="mb-2 text-center">
