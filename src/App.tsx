@@ -432,7 +432,7 @@ const Follows = () => {
 
   return (
     <div class="mt-6 flex flex-col sm:w-full sm:flex-row sm:justify-center">
-      <div class="dark:bg-dark-500 sticky top-0 mr-5 mb-3 flex w-full flex-wrap justify-around border-b border-b-gray-400 bg-slate-100 pb-3 sm:top-3 sm:mb-0 sm:w-auto sm:flex-col sm:self-start sm:border-none">
+      <div class="dark:bg-dark-500 sticky top-0 z-30 mr-5 mb-3 flex w-full flex-wrap justify-around border-b border-b-gray-400 bg-slate-100 pb-3 sm:top-3 sm:mb-0 sm:w-auto sm:flex-col sm:self-start sm:border-none">
         <For each={options}>
           {(option, index) => (
             <div
