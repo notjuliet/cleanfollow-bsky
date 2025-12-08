@@ -2,7 +2,7 @@ import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vite";
 import solidPlugin from "vite-plugin-solid";
 
-import metadata from "./public/client-metadata.json";
+import metadata from "./public/oauth-client-metadata.json";
 
 const SERVER_HOST = "127.0.0.1";
 const SERVER_PORT = 13213;

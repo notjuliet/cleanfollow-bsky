@@ -1,5 +1,5 @@
 {
-  "client_id": "https://cleanfollow-bsky.pages.dev/client-metadata.json",
+  "client_id": "https://cleanfollow-bsky.pages.dev/oauth-client-metadata.json",
   "client_name": "cleanfollow-bsky",
   "client_uri": "https://cleanfollow-bsky.pages.dev",
   "redirect_uris": ["https://cleanfollow-bsky.pages.dev/"],
