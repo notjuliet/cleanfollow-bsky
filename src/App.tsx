@@ -4,14 +4,21 @@ import { createStore } from "solid-js/store";
 import { ComAtprotoRepoApplyWrites } from "@atcute/atproto";
 import { AppBskyGraphFollow } from "@atcute/bluesky";
 import { Client, CredentialManager } from "@atcute/client";
+import {
+  CompositeDidDocumentResolver,
+  LocalActorResolver,
+  PlcDidDocumentResolver,
+  WebDidDocumentResolver,
+  XrpcHandleResolver,
+} from "@atcute/identity-resolver";
 import { $type, ActorIdentifier, Did, Handle } from "@atcute/lexicons";
+import { isDid, isHandle } from "@atcute/lexicons/syntax";
 import {
   configureOAuth,
   createAuthorizationUrl,
   finalizeAuthorization,
   getSession,
   OAuthUserAgent,
-  resolveFromIdentity,
   type Session,
 } from "@atcute/oauth-browser-client";
 
@@ -20,6 +27,16 @@ configureOAuth({
     client_id: import.meta.env.VITE_OAUTH_CLIENT_ID,
     redirect_uri: import.meta.env.VITE_OAUTH_REDIRECT_URL,
   },
+  identityResolver: new LocalActorResolver({
+    handleResolver: new XrpcHandleResolver({ serviceUrl: "https://public.api.bsky.app" }),
+
+    didDocumentResolver: new CompositeDidDocumentResolver({
+      methods: {
+        plc: new PlcDidDocumentResolver(),
+        web: new WebDidDocumentResolver(),
+      },
+    }),
+  }),
 });
 
 enum RepoStatus {
@@ -89,11 +106,11 @@ const Login = () => {
       if (params.has("state") && (params.has("code") || params.has("error"))) {
         history.replaceState(null, "", location.pathname + location.search);
 
-        const session = await finalizeAuthorization(params);
-        const did = session.info.sub;
+        const auth = await finalizeAuthorization(params);
+        const did = auth.session.info.sub;
 
         localStorage.setItem("lastSignedIn", did);
-        return session;
+        return auth.session;
       } else {
         const lastSignedIn = localStorage.getItem("lastSignedIn");
 
@@ -162,16 +179,15 @@ const Login = () => {
       setLoginState(true);
     } else {
       try {
-        setNotice(`Resolving your identity...`);
-        const resolved = await resolveFromIdentity(login);
-
-        setNotice(`Contacting your data server...`);
+        setNotice(`Redirecting...`);
         const authUrl = await createAuthorizationUrl({
           scope: import.meta.env.VITE_OAUTH_SCOPE,
-          ...resolved,
+          target:
+            isHandle(login) || isDid(login) ?
+              { type: "account", identifier: login }
+            : { type: "pds", serviceUrl: login },
         });
 
-        setNotice(`Redirecting...`);
         await new Promise((resolve) => setTimeout(resolve, 250));
 
         location.assign(authUrl);
@@ -450,7 +466,7 @@ const Follows = () => {
                     checked
                     onChange={(e) => editRecords(option.status, "visible", e.currentTarget.checked)}
                   />
-                  <span class="peer relative h-5 w-9 rounded-full bg-gray-200 peer-checked:bg-blue-600 peer-focus:ring-4 peer-focus:ring-blue-300 peer-focus:outline-none after:absolute after:start-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white rtl:peer-checked:after:-translate-x-full dark:border-gray-600 dark:bg-gray-700 dark:peer-focus:ring-blue-800"></span>
+                  <span class="peer relative h-5 w-9 rounded-full bg-gray-200 peer-checked:bg-blue-600 peer-focus:ring-4 peer-focus:ring-blue-300 peer-focus:outline-none after:absolute after:start-0.5 after:top-0.5 after:h-4 after:w-4 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white rtl:peer-checked:after:-translate-x-full dark:border-gray-600 dark:bg-gray-700 dark:peer-focus:ring-blue-800"></span>
                   <span class="ms-3 select-none">{option.label}</span>
                 </label>
               </div>
