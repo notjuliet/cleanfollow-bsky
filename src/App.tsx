@@ -129,7 +129,13 @@ const Login = () => {
 
     if (session) {
       agent = new OAuthUserAgent(session);
-      rpc = new Client({ handler: agent });
+      rpc = new Client({
+        handler: agent,
+        proxy: {
+          did: "did:web:api.bsky.app",
+          serviceId: "#bsky_appview",
+        },
+      });
       agentDID = agent.sub;
 
       setLoginState(true);
