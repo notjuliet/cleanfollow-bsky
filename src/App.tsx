@@ -318,7 +318,10 @@ const Fetch = () => {
         params: { actors: dids as Did[] },
       });
 
-      if (!res.ok) throw new Error(res.data.error);
+      if (!res.ok) {
+        setNotice("Error fetching profiles. Try logging back in if you haven't.");
+        throw new Error(res.data.error);
+      }
 
       const foundDids = new Set(res.data.profiles.map((p) => p.did));
 
