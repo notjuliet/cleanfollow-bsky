@@ -3,7 +3,7 @@
   "client_name": "cleanfollow-bsky",
   "client_uri": "https://cleanfollow-bsky.pages.dev",
   "redirect_uris": ["https://cleanfollow-bsky.pages.dev/"],
-  "scope": "atproto repo:app.bsky.graph.follow?action=delete rpc:app.bsky.actor.getProfile?aud=did:web:api.bsky.app#bsky_appview",
+  "scope": "atproto repo:app.bsky.graph.follow?action=delete rpc:app.bsky.actor.getProfile?aud=did:web:api.bsky.app#bsky_appview rpc:app.bsky.actor.getProfiles?aud=did:web:api.bsky.app#bsky_appview",
   "grant_types": ["authorization_code", "refresh_token"],
   "response_types": ["code"],
   "token_endpoint_auth_method": "none",
