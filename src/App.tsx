@@ -310,87 +310,113 @@ const Fetch = () => {
     const tmpFollows: FollowRecord[] = [];
     setNotice("");
     const BATCH_SIZE = 25;
+    const CONCURRENT_BATCHES = 5;
+
+    // Create all batches
+    const batches = [];
     for (let i = 0; i < follows.length; i += BATCH_SIZE) {
-      const batch = follows.slice(i, i + BATCH_SIZE);
-      const dids = batch.map((record) => (record.value as AppBskyGraphFollow.Main).subject);
+      batches.push(follows.slice(i, i + BATCH_SIZE));
+    }
 
-      const res = await rpc.get("app.bsky.actor.getProfiles", {
-        params: { actors: dids as Did[] },
-      });
+    // Process batches in parallel with concurrency limit
+    for (let i = 0; i < batches.length; i += CONCURRENT_BATCHES) {
+      const batchGroup = batches.slice(i, i + CONCURRENT_BATCHES);
 
-      if (!res.ok) {
-        setNotice("Error fetching profiles. Try logging back in if you haven't.");
-        throw new Error(res.data.error);
-      }
+      const results = await Promise.all(
+        batchGroup.map(async (batch) => {
+          const dids = batch.map((record) => (record.value as AppBskyGraphFollow.Main).subject);
 
-      const foundDids = new Set(res.data.profiles.map((p) => p.did));
-
-      for (const profile of res.data.profiles) {
-        let status: RepoStatus | undefined = undefined;
-        const viewer = profile.viewer;
-
-        if (profile.labels?.some((label) => label.val === "!hide")) {
-          status = RepoStatus.HIDDEN;
-        } else if (viewer && viewer.blockedBy) {
-          status =
-            viewer.blocking || viewer.blockingByList ?
-              RepoStatus.BLOCKEDBY | RepoStatus.BLOCKING
-            : RepoStatus.BLOCKEDBY;
-        } else if (profile.did === agentDID) {
-          status = RepoStatus.YOURSELF;
-        } else if (viewer && (viewer.blocking || viewer.blockingByList)) {
-          status = RepoStatus.BLOCKING;
-        }
-
-        if (status !== undefined) {
-          const record = batch.find(
-            (r) => (r.value as AppBskyGraphFollow.Main).subject === profile.did,
-          )!;
-          tmpFollows.push({
-            did: profile.did,
-            handle: profile.handle,
-            uri: record.uri,
-            status: status,
-            status_label: getStatusLabel(status),
-            toDelete: false,
-            visible: true,
+          const res = await rpc.get("app.bsky.actor.getProfiles", {
+            params: { actors: dids as Did[] },
           });
+
+          if (!res.ok) {
+            setNotice("Error fetching profiles. Try logging back in if you haven't.");
+            throw new Error(res.data.error);
+          }
+
+          return { batch, dids, res };
+        }),
+      );
+
+      // Process all results from this batch group
+      for (const { batch, dids, res } of results) {
+        const foundDids = new Set(res.data.profiles.map((p) => p.did));
+
+        for (const profile of res.data.profiles) {
+          let status: RepoStatus | undefined = undefined;
+          const viewer = profile.viewer;
+
+          if (profile.labels?.some((label) => label.val === "!hide")) {
+            status = RepoStatus.HIDDEN;
+          } else if (viewer && viewer.blockedBy) {
+            status =
+              viewer.blocking || viewer.blockingByList ?
+                RepoStatus.BLOCKEDBY | RepoStatus.BLOCKING
+              : RepoStatus.BLOCKEDBY;
+          } else if (profile.did === agentDID) {
+            status = RepoStatus.YOURSELF;
+          } else if (viewer && (viewer.blocking || viewer.blockingByList)) {
+            status = RepoStatus.BLOCKING;
+          }
+
+          if (status !== undefined) {
+            const record = batch.find(
+              (r) => (r.value as AppBskyGraphFollow.Main).subject === profile.did,
+            )!;
+            tmpFollows.push({
+              did: profile.did,
+              handle: profile.handle,
+              uri: record.uri,
+              status: status,
+              status_label: getStatusLabel(status),
+              toDelete: false,
+              visible: true,
+            });
+          }
         }
+
+        // Process missing DIDs in parallel
+        const missingDids = dids.filter((did) => !foundDids.has(did));
+        const missingResults = await Promise.all(
+          missingDids.map(async (did) => {
+            let status: RepoStatus | undefined = undefined;
+            const handle = await resolveDid(did);
+
+            const profileRes = await rpc.get("app.bsky.actor.getProfile", {
+              params: { actor: did },
+            });
+
+            if (!profileRes.ok) {
+              const e = profileRes.data as any;
+              status =
+                e.message.includes("not found") ? RepoStatus.DELETED
+                : e.message.includes("deactivated") ? RepoStatus.DEACTIVATED
+                : e.message.includes("suspended") ? RepoStatus.SUSPENDED
+                : undefined;
+            }
+
+            return { did, handle, status };
+          }),
+        );
+
+        for (const { did, handle, status } of missingResults) {
+          if (status !== undefined) {
+            const record = batch.find((r) => (r.value as AppBskyGraphFollow.Main).subject === did)!;
+            tmpFollows.push({
+              did: did,
+              handle: handle,
+              uri: record.uri,
+              status: status,
+              status_label: getStatusLabel(status),
+              toDelete: false,
+              visible: true,
+            });
+          }
+        }
+
+        setProgress((prev) => prev + batch.length);
       }
-
-      const missingDids = dids.filter((did) => !foundDids.has(did));
-      for (const did of missingDids) {
-        let status: RepoStatus | undefined = undefined;
-        const handle = await resolveDid(did);
-
-        const profileRes = await rpc.get("app.bsky.actor.getProfile", {
-          params: { actor: did },
-        });
-
-        if (!profileRes.ok) {
-          const e = profileRes.data as any;
-          status =
-            e.message.includes("not found") ? RepoStatus.DELETED
-            : e.message.includes("deactivated") ? RepoStatus.DEACTIVATED
-            : e.message.includes("suspended") ? RepoStatus.SUSPENDED
-            : undefined;
-        }
-
-        if (status !== undefined) {
-          const record = batch.find((r) => (r.value as AppBskyGraphFollow.Main).subject === did)!;
-          tmpFollows.push({
-            did: did,
-            handle: handle,
-            uri: record.uri,
-            status: status,
-            status_label: getStatusLabel(status),
-            toDelete: false,
-            visible: true,
-          });
-        }
-      }
-
-      setProgress(i + batch.length);
     }
 
     if (tmpFollows.length === 0) setNotice("No accounts to unfollow");
