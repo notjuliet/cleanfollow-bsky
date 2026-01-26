@@ -262,6 +262,7 @@ const Fetch = () => {
   const [progress, setProgress] = createSignal(0);
   const [followCount, setFollowCount] = createSignal(0);
   const [notice, setNotice] = createSignal("");
+  const [failedProfiles, setFailedProfiles] = createSignal(0);
 
   const fetchHiddenAccounts = async () => {
     const fetchFollows = async () => {
@@ -305,12 +306,14 @@ const Fetch = () => {
     };
 
     setProgress(0);
+    setFailedProfiles(0);
     const follows = await fetchFollows();
     setFollowCount(follows.length);
     const tmpFollows: FollowRecord[] = [];
     setNotice("");
-    const BATCH_SIZE = 25;
-    const CONCURRENT_BATCHES = 5;
+    const BATCH_SIZE = 20; // Max is 25 per API spec, using 20 to be safe
+    const CONCURRENT_BATCHES = 2; // Reduced to avoid rate limiting
+    const BATCH_DELAY_MS = 500; // Delay between batch groups
 
     // Create all batches
     const batches = [];
@@ -322,25 +325,47 @@ const Fetch = () => {
     for (let i = 0; i < batches.length; i += CONCURRENT_BATCHES) {
       const batchGroup = batches.slice(i, i + CONCURRENT_BATCHES);
 
-      const results = await Promise.all(
+      // Add delay between batch groups to avoid rate limiting
+      if (i > 0) {
+        await new Promise((resolve) => setTimeout(resolve, BATCH_DELAY_MS));
+      }
+
+      const results = await Promise.allSettled(
         batchGroup.map(async (batch) => {
           const dids = batch.map((record) => (record.value as AppBskyGraphFollow.Main).subject);
 
-          const res = await rpc.get("app.bsky.actor.getProfiles", {
-            params: { actors: dids as Did[] },
-          });
+          try {
+            const res = await rpc.get("app.bsky.actor.getProfiles", {
+              params: { actors: dids as Did[] },
+            });
 
-          if (!res.ok) {
-            setNotice("Error fetching profiles. Try logging back in if you haven't.");
-            throw new Error(res.data.error);
+            if (!res.ok) {
+              console.warn("Failed to fetch profiles for batch:", {
+                error: res.data,
+                didCount: dids.length,
+              });
+              setFailedProfiles((prev) => prev + dids.length);
+              // Return empty profiles array for this batch instead of throwing
+              return { batch, dids, res: { ok: true, data: { profiles: [] } } };
+            }
+
+            return { batch, dids, res };
+          } catch (error) {
+            console.warn("Exception fetching profiles:", error);
+            setFailedProfiles((prev) => prev + dids.length);
+            return { batch, dids, res: { ok: true, data: { profiles: [] } } };
           }
-
-          return { batch, dids, res };
         }),
       );
 
       // Process all results from this batch group
-      for (const { batch, dids, res } of results) {
+      for (const result of results) {
+        if (result.status === "rejected") {
+          console.warn("Batch processing failed:", result.reason);
+          continue;
+        }
+        
+        const { batch, dids, res } = result.value;
         const foundDids = new Set(res.data.profiles.map((p) => p.did));
 
         for (const profile of res.data.profiles) {
@@ -419,7 +444,17 @@ const Fetch = () => {
       }
     }
 
-    if (tmpFollows.length === 0) setNotice("No accounts to unfollow");
+    if (tmpFollows.length === 0) {
+      if (failedProfiles() > 0) {
+        setNotice(
+          `Completed. ${failedProfiles()} profile(s) could not be fetched. No accounts to unfollow.`,
+        );
+      } else {
+        setNotice("No accounts to unfollow");
+      }
+    } else if (failedProfiles() > 0) {
+      setNotice(`Found ${tmpFollows.length} account(s). ${failedProfiles()} profile(s) could not be fetched.`);
+    }
     setFollowRecords(tmpFollows);
     setProgress(0);
     setFollowCount(0);
@@ -476,6 +511,7 @@ const Fetch = () => {
       <Show when={followCount() && progress() != followCount()}>
         <div class="m-3">
           Progress: {progress()}/{followCount()}
+          {failedProfiles() > 0 && <span class="text-orange-600 dark:text-orange-400"> ({failedProfiles()} failed)</span>}
         </div>
       </Show>
     </div>
