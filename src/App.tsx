@@ -101,7 +101,7 @@ const Login = () => {
     setNotice("Loading...");
 
     const init = async (): Promise<Session | undefined> => {
-      const params = new URLSearchParams(location.hash.slice(1));
+      const params = new URLSearchParams(decodeURIComponent(location.hash.slice(1)));
 
       if (params.has("state") && (params.has("code") || params.has("error"))) {
         history.replaceState(null, "", location.pathname + location.search);
@@ -364,7 +364,7 @@ const Fetch = () => {
           console.warn("Batch processing failed:", result.reason);
           continue;
         }
-        
+
         const { batch, dids, res } = result.value;
         const foundDids = new Set(res.data.profiles.map((p) => p.did));
 
@@ -453,7 +453,9 @@ const Fetch = () => {
         setNotice("No accounts to unfollow");
       }
     } else if (failedProfiles() > 0) {
-      setNotice(`Found ${tmpFollows.length} account(s). ${failedProfiles()} profile(s) could not be fetched.`);
+      setNotice(
+        `Found ${tmpFollows.length} account(s). ${failedProfiles()} profile(s) could not be fetched.`,
+      );
     }
     setFollowRecords(tmpFollows);
     setProgress(0);
@@ -511,7 +513,9 @@ const Fetch = () => {
       <Show when={followCount() && progress() != followCount()}>
         <div class="m-3">
           Progress: {progress()}/{followCount()}
-          {failedProfiles() > 0 && <span class="text-orange-600 dark:text-orange-400"> ({failedProfiles()} failed)</span>}
+          {failedProfiles() > 0 && (
+            <span class="text-orange-600 dark:text-orange-400"> ({failedProfiles()} failed)</span>
+          )}
         </div>
       </Show>
     </div>
