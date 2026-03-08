@@ -62,6 +62,7 @@ type FollowRecord = {
 const [followRecords, setFollowRecords] = createStore<FollowRecord[]>([]);
 const [loginState, setLoginState] = createSignal(false);
 let rpc: Client;
+let appviewRpc: Client;
 let agent: OAuthUserAgent;
 let manager: CredentialManager;
 let agentDID: string;
@@ -129,7 +130,8 @@ const Login = () => {
 
     if (session) {
       agent = new OAuthUserAgent(session);
-      rpc = new Client({
+      rpc = new Client({ handler: agent });
+      appviewRpc = new Client({
         handler: agent,
         proxy: {
           did: "did:web:api.bsky.app",
@@ -177,6 +179,7 @@ const Login = () => {
       agentDID = login.startsWith("did:") ? login : await resolveHandle(login);
       manager = new CredentialManager({ service: await getPDS(agentDID) });
       rpc = new Client({ handler: manager });
+      appviewRpc = rpc;
 
       await manager.login({
         identifier: agentDID,
@@ -335,7 +338,7 @@ const Fetch = () => {
           const dids = batch.map((record) => (record.value as AppBskyGraphFollow.Main).subject);
 
           try {
-            const res = await rpc.get("app.bsky.actor.getProfiles", {
+            const res = await appviewRpc.get("app.bsky.actor.getProfiles", {
               params: { actors: dids as Did[] },
             });
 
@@ -408,7 +411,7 @@ const Fetch = () => {
             let status: RepoStatus | undefined = undefined;
             const handle = await resolveDid(did);
 
-            const profileRes = await rpc.get("app.bsky.actor.getProfile", {
+            const profileRes = await appviewRpc.get("app.bsky.actor.getProfile", {
               params: { actor: did },
             });
 
