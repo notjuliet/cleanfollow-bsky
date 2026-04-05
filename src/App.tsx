@@ -570,7 +570,7 @@ const Follows = () => {
                     checked
                     onChange={(e) => editRecords(option.status, "visible", e.currentTarget.checked)}
                   />
-                  <span class="peer relative h-5 w-9 rounded-full bg-gray-200 peer-checked:bg-blue-600 peer-focus:ring-4 peer-focus:ring-blue-300 peer-focus:outline-none after:absolute after:start-0.5 after:top-0.5 after:h-4 after:w-4 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white rtl:peer-checked:after:-translate-x-full dark:border-gray-600 dark:bg-gray-700 dark:peer-focus:ring-blue-800"></span>
+                  <span class="peer relative h-5 w-9 rounded-full bg-gray-200 peer-checked:bg-blue-600 peer-focus:ring-4 peer-focus:ring-blue-300 peer-focus:outline-none after:absolute after:inset-s-0.5 after:top-0.5 after:h-4 after:w-4 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white rtl:peer-checked:after:-translate-x-full dark:border-gray-600 dark:bg-gray-700 dark:peer-focus:ring-blue-800"></span>
                   <span class="ms-3 select-none">{option.label}</span>
                 </label>
               </div>
@@ -635,15 +635,11 @@ const Follows = () => {
                       <span class="group/tooltip relative flex items-center">
                         <a
                           class="icon-[lucide--external-link] text-sm text-blue-500 dark:text-blue-400"
-                          href={
-                            record.did.startsWith("did:plc:") ?
-                              `https://web.plc.directory/did/${record.did}`
-                            : `https://${record.did.replace("did:web:", "")}/.well-known/did.json`
-                          }
+                          href={`https://pds.ls/at://${record.did}`}
                           target="_blank"
                         ></a>
                         <span class="left-50% dark:bg-dark-600 pointer-events-none absolute top-5 z-10 hidden w-[14ch] -translate-x-1/2 rounded border border-neutral-500 bg-slate-200 p-1 text-center text-xs group-hover/tooltip:block">
-                          DID document
+                          PDSls
                         </span>
                       </span>
                     </span>
